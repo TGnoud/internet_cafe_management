@@ -67,6 +67,7 @@ public class AdminPageController {
 
     @Autowired
     private UuDaiService uuDaiService;
+    private RedirectAttributes redirectAttributes;
 
 
     @GetMapping("/dashboard")

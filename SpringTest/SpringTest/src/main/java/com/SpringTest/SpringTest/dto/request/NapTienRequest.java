@@ -7,4 +7,7 @@ import java.math.BigDecimal;
 public class NapTienRequest {
     private String maTK;
     private BigDecimal soTienNap;
+
+    public NapTienRequest(String maTK, Object o) {
+    }
 }

@@ -15,34 +15,26 @@
 </style>
 </head>
 <body>
-<div class="container">
-  <h2>Đăng Nhập Hệ Thống</h2>
-
-  <div th:if="${param.error}" class="error-message">
-    Tên đăng nhập hoặc mật khẩu không đúng.
-  </div>
-  <div th:if="${param.logout}" class="info-message"> Bạn đã đăng xuất thành công.
-  </div>
-  <div id="apiErrorMessage" class="error-message" style="display: none;"></div>
-
-
-  <form id="loginForm">
-    <div>
-      <label for="tenTK">Tên tài khoản:</label>
-      <input type="text" id="tenTK" name="tenTK" required>
+<div class="login-container">
+  <form th:action="@{/login}" method="post" class="login-form">
+    <h2>Đăng nhập</h2>
+    <div th:if="${param.error}" class="error-message">
+      Tên đăng nhập hoặc mật khẩu không đúng.
     </div>
-    <div>
+    <div class.form-group>
+      <label for="tenTK">Tên đăng nhập:</label>
+      <input type="text" id="tenTK" name="tenTK" required autofocus />
+    </div>
+    <div class="form-group">
       <label for="matKhau">Mật khẩu:</label>
-      <input type="password" id="matKhau" name="matKhau" required>
+      <input type="password" id="matKhau" name="matKhau" required />
     </div>
-    <div>
-      <label for="maMay">Mã máy (khách hàng):</label>
-      <input type="text" id="maMay" name="maMay">
-    </div>
-    <button type="submit">Đăng nhập</button>
+    <button type="submit" class="btn btn-primary">Đăng nhập</button>
   </form>
+    <div class="register-link">
+        <p>Chưa có tài khoản? <a th:href="@{/register}">Đăng ký ngay</a></p>
 </div>
-
 <script th:src="@{/js/login-page.js}"></script>
+</div>
 </body>
 </html>
