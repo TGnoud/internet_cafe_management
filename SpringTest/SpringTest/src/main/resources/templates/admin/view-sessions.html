@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::mainContent})}">
+<head>
+  <title>Lịch Sử Phiên Sử Dụng</title>
+  <meta charset="utf-8">
+</head>
+<body>
+<main th:fragment="mainContent">
+  <h2 class="section-title">Lịch Sử Tất Cả Phiên Sử Dụng</h2>
+  <table>
+    <thead>
+    <tr>
+      <th>Mã Phiên</th>
+      <th>Mã Máy</th>
+      <th>Tên Máy</th>
+      <th>Mã Tài Khoản</th>
+      <th>Tên Tài Khoản</th>
+      <th>Thời Gian Bắt Đầu</th>
+      <th>Thời Gian Kết Thúc</th>
+      <th>Thời Gian Còn Lại (phút)</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="phien : ${phienSuDungPage.content}">
+      <td th:text="${phien.maPhien}">1</td>
+      <td th:text="${phien.maMay}">MT01</td>
+      <td th:text="${phien.tenMay}">Máy 01</td>
+      <td th:text="${phien.maTK}">TK001</td>
+      <td th:text="${phien.tenTK}">user01</td>
+      <td th:text="${#temporals.format(phien.thoiGianBatDau, 'dd/MM/yyyy HH:mm:ss')}"></td>
+      <td th:text="${phien.thoiGianKetThuc != null ? #temporals.format(phien.thoiGianKetThuc, 'dd/MM/yyyy HH:mm:ss') : 'Đang chạy'}"></td>
+      <td th:text="${phien.thoiGianKetThuc == null ? phien.thoiGianConLaiDuKienPhut : '-'}"></td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(phienSuDungPage.content)}">
+      <td colspan="8" style="text-align: center;">Không có phiên sử dụng nào.</td>
+    </tr>
+    </tbody>
+  </table>
+
+  <nav th:if="${phienSuDungPage.totalPages > 1}" aria-label="Page navigation">
+    <ul class="pagination">
+      <li class="page-item" th:classappend="${phienSuDungPage.first ? 'disabled' : ''}">
+        <a class="page-link" th:href="@{/admin/sessions(page=${phienSuDungPage.number - 1}, size=${phienSuDungPage.size})}">Trước</a>
+      </li>
+      <li class="page-item" th:each="i : ${#numbers.sequence(0, phienSuDungPage.totalPages - 1)}" th:classappend="${i == phienSuDungPage.number ? 'active' : ''}">
+        <a class="page-link" th:href="@{/admin/sessions(page=${i}, size=${phienSuDungPage.size})}" th:text="${i + 1}">1</a>
+      </li>
+      <li class="page-item" th:classappend="${phienSuDungPage.last ? 'disabled' : ''}">
+        <a class="page-link" th:href="@{/admin/sessions(page=${phienSuDungPage.number + 1}, size=${phienSuDungPage.size})}">Sau</a>
+      </li>
+    </ul>
+  </nav>
+</main>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::mainContent})}">
+<head>
+  <title>Quản Lý Nhân Viên</title>
+  <meta charset="utf-8">
+</head>
+<body>
+<main th:fragment="mainContent">
+  <h2 class="section-title">Danh Sách Nhân Viên</h2>
+  <a th:href="@{/admin/employees/add}" class="btn-add">Thêm Nhân Viên Mới</a>
+  <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+  <table>
+    <thead>
+    <tr>
+      <th>Mã Nhân Viên</th>
+      <th>Họ Tên</th>
+      <th>Số Điện Thoại</th>
+      <th>Giới Tính</th>
+      <th>Ngày Sinh</th>
+      <th>Chức Vụ</th>
+      <th>Hành Động</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="nv : ${employeePage != null ? employeePage.content : danhSachNhanVien}">
+      <td th:text="${nv.maNV}">NV01</td>
+      <td th:text="${nv.hoTen}">Trần Văn B</td>
+      <td th:text="${nv.soDienThoai}">0987654321</td>
+      <td th:text="${nv.gioiTinh}">Nam</td>
+      <td th:text="${nv.ngaySinh != null ? #temporals.format(nv.ngaySinh, 'dd/MM/yyyy') : ''}">01/01/1990</td>
+      <td th:text="${nv.chucVu != null ? nv.chucVu.tenChucVu : 'N/A'}">Nhân viên</td>
+      <td class="action-buttons">
+        <a th:href="@{/admin/employees/edit/{maNV}(maNV=${nv.maNV})}" class="btn-edit">Sửa</a>
+        <button class="btn-delete" th:attr="onclick=|confirmDelete('/api/manager/employees/' + '${nv.maNV}', 'nhân viên')|">Xóa</button>
+      </td>
+    </tr>
+    <tr th:if="${(employeePage != null && #lists.isEmpty(employeePage.content)) || (#lists.isEmpty(danhSachNhanVien) && employeePage == null)}">
+      <td colspan="7" style="text-align: center;">Không có nhân viên nào.</td>
+    </tr>
+    </tbody>
+  </table>
+  <script th:src="@{/js/admin-common.js}"></script>
+</main>
+</body>
+</html>

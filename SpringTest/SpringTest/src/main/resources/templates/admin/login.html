@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Đăng nhập</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}"> <style>
+  body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background-color: #f4f4f4; margin: 0; }
+  .container { background-color: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 0 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; }
+  h2 { text-align: center; color: #333; margin-bottom: 20px; }
+  label { display: block; margin-bottom: 5px; color: #555; }
+  input[type="text"], input[type="password"] { width: calc(100% - 20px); padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
+  button { background-color: #007bff; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; }
+  button:hover { background-color: #0056b3; }
+  .error-message { background-color: #ffebee; color: #c62828; border: 1px solid #ef9a9a; padding: 10px; border-radius: 4px; margin-bottom: 15px; text-align: center; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Đăng Nhập Hệ Thống</h2>
+
+  <div th:if="${param.error}" class="error-message">
+    Tên đăng nhập hoặc mật khẩu không đúng.
+  </div>
+  <div th:if="${param.logout}" class="info-message"> Bạn đã đăng xuất thành công.
+  </div>
+  <div id="apiErrorMessage" class="error-message" style="display: none;"></div>
+
+
+  <form id="loginForm">
+    <div>
+      <label for="tenTK">Tên tài khoản:</label>
+      <input type="text" id="tenTK" name="tenTK" required>
+    </div>
+    <div>
+      <label for="matKhau">Mật khẩu:</label>
+      <input type="password" id="matKhau" name="matKhau" required>
+    </div>
+    <div>
+      <label for="maMay">Mã máy (khách hàng):</label>
+      <input type="text" id="maMay" name="maMay">
+    </div>
+    <button type="submit">Đăng nhập</button>
+  </form>
+</div>
+
+<script th:src="@{/js/login-page.js}"></script>
+</body>
+</html>

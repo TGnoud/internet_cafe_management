@@ -1,0 +1,32 @@
+.styled-form { max-width: 600px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+.form-group { margin-bottom: 15px; }
+.form-group label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+.form-group input[type="text"],
+.form-group input[type="number"],
+.form-group input[type="password"],
+.form-group input[type="date"],
+.form-group select,
+.form-group textarea {
+    width: calc(100% - 22px); /* Adjust for padding and border */
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+.form-group textarea { resize: vertical; }
+.form-error { color: red; font-size: 0.9em; display: block; margin-top: 3px; }
+.form-actions { margin-top: 20px; text-align: right; }
+.btn-submit { background-color: #28a745; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+.btn-submit:hover { background-color: #218838; }
+.btn-cancel { background-color: #6c757d; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px; margin-left: 10px; }
+.btn-cancel:hover { background-color: #5a6268; }
+.alert { padding: 15px; margin-bottom: 20px; border: 1px solid transparent; border-radius: 4px; }
+.alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+.alert-danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+.pagination { display: flex; padding-left: 0; list-style: none; border-radius: .25rem; justify-content: center; margin-top:20px;}
+.page-item.disabled .page-link { color: #6c757d; pointer-events: none; cursor: auto; background-color: #fff; border-color: #dee2e6; }
+.page-item.active .page-link { z-index: 1; color: #fff; background-color: #007bff; border-color: #007bff; }
+.page-link { position: relative; display: block; padding: .5rem .75rem; margin-left: -1px; line-height: 1.25; color: #007bff; background-color: #fff; border: 1px solid #dee2e6; text-decoration:none; }
+.page-link:hover { z-index: 2; color: #0056b3; background-color: #e9ecef; border-color: #dee2e6; }
+fieldset { border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 4px; }
+legend { font-weight: bold; color: #333; padding: 0 10px; }

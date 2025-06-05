@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::mainContent})}">
+<head>
+  <title>Quản Lý Dịch Vụ</title>
+  <meta charset="utf-8">
+</head>
+<body>
+<main th:fragment="mainContent">
+  <h2 class="section-title">Danh Sách Dịch Vụ</h2>
+  <a th:href="@{/admin/services/add}" class="btn-add">Thêm Dịch Vụ Mới</a>
+
+  <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+  <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+
+  <table>
+    <thead>
+    <tr>
+      <th>Mã Dịch Vụ</th>
+      <th>Tên Dịch Vụ</th>
+      <th>Đơn Giá</th>
+      <th>Trạng Thái</th>
+      <th>Hành Động</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="dichVu : ${danhSachDichVu}">
+      <td th:text="${dichVu.maDV}">DV001</td>
+      <td th:text="${dichVu.tenDV}">Nước ngọt</td>
+      <td th:text="${#numbers.formatDecimal(dichVu.donGia, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">10,000 VNĐ</td>
+      <td th:text="${dichVu.trangThaiDichVu}">Còn hàng</td>
+      <td class="action-buttons">
+        <a th:href="@{/admin/services/edit/{maDV}(maDV=${dichVu.maDV})}" class="btn-edit">Sửa</a>
+        <button class="btn-delete" th:attr="onclick=|confirmDelete('/api/employee/services/' + '${dichVu.maDV}', 'dịch vụ')|">Xóa</button>
+      </td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(danhSachDichVu)}">
+      <td colspan="5" style="text-align: center;">Không có dịch vụ nào.</td>
+    </tr>
+    </tbody>
+  </table>
+
+  <nav th:if="${dichVuPage != null && dichVuPage.totalPages > 1}" aria-label="Page navigation">
+    <ul class="pagination">
+      <li class="page-item" th:classappend="${dichVuPage.first ? 'disabled' : ''}">
+        <a class="page-link" th:href="@{/admin/services(page=${dichVuPage.number - 1}, size=${dichVuPage.size})}">Trước</a>
+      </li>
+      <li class="page-item" th:each="i : ${#numbers.sequence(0, dichVuPage.totalPages - 1)}" th:classappend="${i == dichVuPage.number ? 'active' : ''}">
+        <a class="page-link" th:href="@{/admin/services(page=${i}, size=${dichVuPage.size})}" th:text="${i + 1}">1</a>
+      </li>
+      <li class="page-item" th:classappend="${dichVuPage.last ? 'disabled' : ''}">
+        <a class="page-link" th:href="@{/admin/services(page=${dichVuPage.number + 1}, size=${dichVuPage.size})}">Sau</a>
+      </li>
+    </ul>
+  </nav>
+  <script th:src="@{/js/admin-common.js}"></script>
+</main>
+</body>
+</html>

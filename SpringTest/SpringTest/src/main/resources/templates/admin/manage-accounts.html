@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::mainContent})}">
+<head>
+  <title>Quản Lý Tài Khoản Khách Hàng</title>
+  <meta charset="utf-8">
+</head>
+<body>
+<main th:fragment="mainContent">
+  <h2 class="section-title">Danh Sách Tài Khoản Khách Hàng</h2>
+  <a th:href="@{/admin/accounts/add}" class="btn-add">Thêm Tài Khoản Mới</a>
+  <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+  <table>
+    <thead>
+    <tr>
+      <th>Mã Tài Khoản</th>
+      <th>Tên Tài Khoản</th>
+      <th>Mã Khách Hàng</th>
+      <th>Họ Tên Khách Hàng</th>
+      <th>Số Tiền Còn Lại</th>
+      <th>Hành Động</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="tkInfo : ${taiKhoanPage != null ? taiKhoanPage.content : danhSachTaiKhoan}">
+      <td th:text="${tkInfo.maTK}">TK001</td>
+      <td th:text="${tkInfo.tenTK}">user01</td>
+      <td th:text="${tkInfo.maKH}">KH001</td>
+      <td th:text="${tkInfo.hoTenKH}">Nguyễn Văn A</td>
+      <td th:text="${#numbers.formatDecimal(tkInfo.soTienConLai, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">50,000 VNĐ</td>
+      <td class="action-buttons">
+        <a th:href="@{/admin/accounts/edit/{maTK}(maTK=${tkInfo.maTK})}" class="btn-edit">Chi Tiết/Sửa</a>
+        <a th:href="@{/admin/accounts/deposit/{maTK}(maTK=${tkInfo.maTK})}" class="btn-action">Nạp Tiền</a>
+      </td>
+    </tr>
+    <tr th:if="${(taiKhoanPage != null && #lists.isEmpty(taiKhoanPage.content)) || (#lists.isEmpty(danhSachTaiKhoan) && taiKhoanPage == null)}">
+      <td colspan="6" style="text-align: center;">Không có tài khoản nào.</td>
+    </tr>
+    </tbody>
+  </table>
+
+  <nav th:if="${taiKhoanPage != null && taiKhoanPage.totalPages > 1}" aria-label="Page navigation">
+    <ul class="pagination">
+      <li class="page-item" th:classappend="${taiKhoanPage.first ? 'disabled' : ''}">
+        <a class="page-link" th:href="@{/admin/accounts(page=${taiKhoanPage.number - 1}, size=${taiKhoanPage.size})}">Trước</a>
+      </li>
+      <li class="page-item" th:each="i : ${#numbers.sequence(0, taiKhoanPage.totalPages - 1)}" th:classappend="${i == taiKhoanPage.number ? 'active' : ''}">
+        <a class="page-link" th:href="@{/admin/accounts(page=${i}, size=${taiKhoanPage.size})}" th:text="${i + 1}">1</a>
+      </li>
+      <li class="page-item" th:classappend="${taiKhoanPage.last ? 'disabled' : ''}">
+        <a class="page-link" th:href="@{/admin/accounts(page=${taiKhoanPage.number + 1}, size=${taiKhoanPage.size})}">Sau</a>
+      </li>
+    </ul>
+  </nav>
+</main>
+</body>
+</html>
