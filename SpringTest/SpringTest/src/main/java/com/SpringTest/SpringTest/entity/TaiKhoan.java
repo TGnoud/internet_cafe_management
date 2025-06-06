@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.math.BigDecimal;
 import java.util.Set;
+
+@Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
