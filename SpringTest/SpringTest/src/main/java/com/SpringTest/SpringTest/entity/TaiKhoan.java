@@ -4,9 +4,11 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
-import java.math.BigDecimal;
-import java.util.Set;
+import org.hibernate.annotations.CreationTimestamp;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.Set;
 @Entity
 @Data
 @NoArgsConstructor

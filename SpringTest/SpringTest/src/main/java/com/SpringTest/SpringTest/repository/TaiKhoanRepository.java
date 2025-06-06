@@ -10,7 +10,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Repository
@@ -35,7 +34,6 @@ public interface TaiKhoanRepository extends JpaRepository<TaiKhoan, String> {
     );
     @Procedure(name = "TaiKhoan.capNhatSoDu") // Tham chiếu đến tên đã định nghĩa trong @NamedStoredProcedureQuery
     void capNhatSoDuNamed(@Param("p_MaTaiKhoan") Integer maTaiKhoan, @Param("p_SoTienNap") BigDecimal soTienNap);
-    @Query("SELECT COUNT(tk) FROM TaiKhoan tk WHERE tk.ngayTao >= :startDate")
-    long countNewAccountsSince(LocalDateTime startDate);
+
     Page<TaiKhoan> findByKhachHangIsNotNull(Pageable pageable);
 }

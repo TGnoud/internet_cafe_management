@@ -10,6 +10,7 @@ import org.springframework.security.config.annotation.method.configuration.Enabl
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -22,41 +23,42 @@ public class SecurityConfig {
     @Autowired
     private TaiKhoanUserDetailsService taiKhoanUserDetailsService; // Service để load user từ DB
 
+//    @Bean
+//    public static PasswordEncoder passwordEncoder() {
+//        return new BCryptPasswordEncoder();
+//    }
     @Bean
     public static PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        // Lưu ý: NoOpPasswordEncoder đã bị đánh dấu là "deprecated" (không dùng nữa)
+        // vì nó không an toàn.
+        return (NoOpPasswordEncoder) NoOpPasswordEncoder.getInstance();
     }
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(csrf -> csrf.disable()) // Tạm thời disable CSRF cho API test, cần enable và xử lý token cho form production
+        http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/login", "/css/**", "/js/**", "/images/**").permitAll() // Cho phép truy cập trang login, tài nguyên tĩnh
-                        .requestMatchers("/api/auth/login").permitAll() // API login
-                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "MANAGER") // Trang admin yêu cầu vai trò ADMIN hoặc MANAGER
-                        .requestMatchers("/api/manager/**").hasAnyRole("ADMIN", "MANAGER")
-                        .requestMatchers("/api/employee/**").hasAnyRole("ADMIN", "MANAGER", "EMPLOYEE")
-                        .requestMatchers("/api/customer/**").hasRole("CUSTOMER") // API khách hàng
-                        .requestMatchers("/customer/**").hasRole("CUSTOMER") // Trang khách hàng
-                        .anyRequest().authenticated() // Tất cả các request khác cần xác thực
+                        // Cho phép tất cả mọi người truy cập vào các URL này
+                        .requestMatchers("/", "/login", "/logout", "/css/**", "/js/**", "/images/**").permitAll()
+                        // Yêu cầu quyền 'ADMIN' cho các trang quản lý
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // Yêu cầu quyền 'EMPLOYEE' cho các trang nhân viên
+                        .requestMatchers("/employee/**").hasRole("EMPLOYEE")
+                        // Yêu cầu quyền 'MANAGER' cho các trang quản lý cấp cao
+                        .requestMatchers("/manager/**").hasRole("MANAGER")
+                        // Tất cả các yêu cầu khác đều cần phải được xác thực
+                        .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
-                        .loginPage("/login") // Chỉ định trang login tùy chỉnh của bạn
-                        .loginProcessingUrl("/login_perform") // URL mà Spring Security sẽ xử lý submit form login (Thymeleaf form nên trỏ tới đây)
-                        .defaultSuccessUrl("/default-success", true) // Chuyển hướng sau khi login thành công
-                        .failureUrl("/login?error=true") // Chuyển hướng khi login thất bại
+                        .loginPage("/login") // Đường dẫn đến trang đăng nhập tùy chỉnh
+                        .loginProcessingUrl("/login") // URL xử lý form đăng nhập
+                        .defaultSuccessUrl("/admin/dashboard", true) // Trang chuyển hướng sau khi đăng nhập thành công
+                        .failureUrl("/login?error=true") // Trang chuyển hướng khi đăng nhập thất bại
                         .permitAll()
                 )
                 .logout(logout -> logout
-                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout_perform")) // URL để thực hiện logout
-                        .logoutSuccessUrl("/login?logout=true") // Chuyển hướng sau khi logout
-                        .invalidateHttpSession(true)
-                        .deleteCookies("JSESSIONID") // Xóa cookie session
+                        .logoutRequestMatcher(new AntPathRequestMatcher("/logout")) // URL để thực hiện logout
+                        .logoutSuccessUrl("/login?logout=true") // Trang chuyển hướng sau khi logout thành công
                         .permitAll()
-                )
-                .exceptionHandling(exceptions -> exceptions
-                        .accessDeniedPage("/access-denied") // Trang lỗi khi không có quyền
                 );
         return http.build();
     }

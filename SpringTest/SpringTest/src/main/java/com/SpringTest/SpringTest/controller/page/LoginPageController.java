@@ -19,7 +19,7 @@ public class LoginPageController {
             model.addAttribute("logoutMessage", "Bạn đã đăng xuất thành công.");
         }
         // model.addAttribute("loginRequest", new LoginRequestDTO()); // Nếu bạn muốn dùng th:object cho form
-        return "login"; // Trả về tên của file login.html
+        return "admin/login"; // Trả về tên của file login.html
     }
 
     // Nếu bạn muốn trang chủ cũng là trang login nếu chưa đăng nhập:
