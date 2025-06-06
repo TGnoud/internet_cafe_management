@@ -135,14 +135,6 @@ public class EmployeeController {
          return ResponseEntity.ok(new ArrayList<>()); // Placeholder
     }
     */
-    @PostMapping("/sessions/{maPhien}/end")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public ResponseEntity<PhienSuDungInfoResponse> endSession(@PathVariable Integer maPhien) {
-        // Giả sử ưu đãi được áp dụng tự động theo logic trong SQL function
-        boolean apDungUuDai = true;
-        PhienSuDungInfoResponse response = phienSuDungService.endSessionAndCalculateCost(maPhien, apDungUuDai);
-        return ResponseEntity.ok(response);
-    }
     @PostMapping("/service-bills")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
     public ResponseEntity<HoaDonDV> createServiceBill(@RequestBody CreateHoaDonRequest request) {

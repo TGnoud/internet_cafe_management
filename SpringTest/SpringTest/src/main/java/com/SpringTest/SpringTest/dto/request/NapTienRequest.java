@@ -12,5 +12,6 @@ public class NapTienRequest {
     }
 
     public BigDecimal getSoTien() {
+        return soTienNap;
     }
 }

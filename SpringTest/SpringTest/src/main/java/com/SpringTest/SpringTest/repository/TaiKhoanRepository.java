@@ -1,6 +1,8 @@
 package com.SpringTest.SpringTest.repository;
 
 import com.SpringTest.SpringTest.entity.TaiKhoan;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.query.Procedure;
@@ -35,4 +37,5 @@ public interface TaiKhoanRepository extends JpaRepository<TaiKhoan, String> {
     void capNhatSoDuNamed(@Param("p_MaTaiKhoan") Integer maTaiKhoan, @Param("p_SoTienNap") BigDecimal soTienNap);
     @Query("SELECT COUNT(tk) FROM TaiKhoan tk WHERE tk.ngayTao >= :startDate")
     long countNewAccountsSince(LocalDateTime startDate);
+    Page<TaiKhoan> findByKhachHangIsNotNull(Pageable pageable);
 }

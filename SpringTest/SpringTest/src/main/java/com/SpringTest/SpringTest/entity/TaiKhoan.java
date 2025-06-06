@@ -6,20 +6,9 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.math.BigDecimal;
 import java.util.Set;
-@Entity
-@Table(name = "TaiKhoan")
-@NamedStoredProcedureQuery(
-        name = "TaiKhoan.capNhatSoDu", // Tên để tham chiếu từ Repository
-        procedureName = "CapNhatSoDuTaiKhoan", // Tên procedure trong DB
-        parameters = {
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_MaTaiKhoan", type = Integer.class),
-                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_SoTienNap", type = BigDecimal.class)
-        }
-)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Entity
 @Table(name = "TaiKhoan")
 public class TaiKhoan {
 
@@ -51,4 +40,6 @@ public class TaiKhoan {
     // Giả sử có thêm trường vai trò (CUSTOMER, EMPLOYEE, MANAGER) không có trong DDL nhưng cần cho logic ứng dụng
     // @Column(name = "VaiTro", length = 20)
     private String vaiTro;
+    @Version
+    private Long version;
 }

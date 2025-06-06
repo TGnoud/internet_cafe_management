@@ -32,6 +32,7 @@ public class ChiTietHoaDonDV {
     private Integer soLuong;
 
     public void setDonGia(BigDecimal donGia) {
+
     }
 
     // Nếu muốn tính toán và lưu Thành Tiền, bạn có thể thêm:

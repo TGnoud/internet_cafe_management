@@ -10,13 +10,6 @@ public class CreateHoaDonRequest {
     private String maUuDai; // Optional
     private List<OrderServiceRequest.OrderItemRequest> items; // Danh sách các dịch vụ trong OrderServiceRequest đã có
 
-    public class OrderItemDTO {
-        public String getMaDV() {
-        }
-
-        public Integer getSoLuong() {
-        }
-    }
 
     // OrderItemRequest đã được định nghĩa trong OrderServiceRequest
     // @Data
