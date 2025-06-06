@@ -37,7 +37,16 @@ public class HoaDonServiceImpl implements HoaDonService {
     @Autowired
     private UuDaiRepository uuDaiRepository;
 
+    public BigDecimal tinhTongTienDichVuCuaHoaDon(Integer maHoaDon) {
+        return hoaDonDVRepository.getTongTienDichVu(maHoaDon);
+    }
+    public BigDecimal getServiceBillTotalCost(String maHD, boolean applyDiscount) {
+        // Kiểm tra xem hóa đơn có tồn tại không nếu cần
+        // HoaDonDV hoaDon = hoaDonDVRepository.findById(maHD)
+        // .orElseThrow(() -> new ResourceNotFoundException("Hóa đơn " + maHD + " không tìm thấy."));
 
+        return hoaDonDVRepository.calculateServiceBillCost(maHD, applyDiscount);
+    }
     @Override
     @Transactional
     public HoaDonDTO createHoaDon(CreateHoaDonRequest request) {

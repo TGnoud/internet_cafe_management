@@ -16,4 +16,9 @@ public class PhienSuDungInfoResponse {
     private Long thoiGianConLaiDuKienPhut; // Thời gian còn lại dự kiến bằng phút
     private LocalDateTime thoiGianKetThuc; // Thêm trường này
     private BigDecimal tongTienPhien; // Có thể thêm nếu muốn hiển thị tiền của phiên đó
+
+    public BigDecimal getTongTienPhien() {
+        return tongTienPhien;
+    }
+
 }

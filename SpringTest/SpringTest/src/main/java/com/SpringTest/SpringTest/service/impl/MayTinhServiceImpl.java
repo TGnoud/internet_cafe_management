@@ -11,7 +11,10 @@ import com.SpringTest.SpringTest.service.MayTinhService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import jakarta.persistence.EntityManager; // Thêm import này
+import jakarta.persistence.ParameterMode; // Thêm import này
+import jakarta.persistence.PersistenceContext; // Thêm import này
+import jakarta.persistence.StoredProcedureQuery; // Thêm import này
 import java.util.Arrays;
 import java.util.List;
 
@@ -25,53 +28,81 @@ public class MayTinhServiceImpl implements MayTinhService {
     @Autowired
     private LoaiMayRepository loaiMayRepository;
 
-
+    @PersistenceContext // Injecct EntityManager
+    private EntityManager entityManager;
     private static final List<String> VALID_STATUSES = Arrays.asList("Khả dụng", "Bảo trì", "Đang sử dụng");
 
+    public String getActualMachineStatusFromDb(String maMay) {
+        StoredProcedureQuery query = entityManager.createStoredProcedureQuery("KiemTraTrangThaiMay");
+        query.registerStoredProcedureParameter("p_MaMay", String.class, ParameterMode.IN);
+        query.registerStoredProcedureParameter("p_TrangThai", String.class, ParameterMode.OUT); // Tham số OUT
 
+        query.setParameter("p_MaMay", maMay);
+        query.execute();
+
+        return (String) query.getOutputParameterValue("p_TrangThai");
+    }
     @Override
-    public List<MayTinh> getAllMayTinh() {
-        return mayTinhRepository.findAll();
+    public List<MayTinh> getAllMayTinh() { //
+        return mayTinhRepository.findAll(); //
     }
 
     @Override
-    public MayTinh getMayTinhById(String maMay) {
-        return mayTinhRepository.findById(maMay)
-                .orElseThrow(() -> new ResourceNotFoundException("Máy tính không tìm thấy: " + maMay));
+    public MayTinh getMayTinhById(String maMay) { //
+        return mayTinhRepository.findById(maMay) //
+                .orElseThrow(() -> new ResourceNotFoundException("Máy tính không tìm thấy: " + maMay)); //
     }
 
     @Override
     @Transactional
-    public MayTinh updateTrangThaiMay(String maMay, String trangThaiMoi) {
-        if (!VALID_STATUSES.contains(trangThaiMoi)) {
-            throw new BadRequestException("Trạng thái không hợp lệ: " + trangThaiMoi +
-                    ". Các trạng thái hợp lệ: " + VALID_STATUSES);
+    public MayTinh updateTrangThaiMay(String maMay, String trangThaiMoi) { //
+        if (!VALID_STATUSES.contains(trangThaiMoi)) { //
+            throw new BadRequestException("Trạng thái không hợp lệ: " + trangThaiMoi + //
+                    ". Các trạng thái hợp lệ: " + VALID_STATUSES); //
         }
 
-        MayTinh mayTinh = getMayTinhById(maMay);
+        MayTinh mayTinh = getMayTinhById(maMay); //
 
-        // Không cho phép đổi sang "Khả dụng" nếu máy đang có phiên sử dụng chưa kết thúc
-        if ("Khả dụng".equalsIgnoreCase(trangThaiMoi) &&
-                phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()) {
-            throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Khả dụng' khi đang có phiên sử dụng.");
+        // Lấy trạng thái thực tế từ DB (bao gồm cả việc check phiên sử dụng)
+        // String actualStatusFromDb = getActualMachineStatusFromDb(maMay); // Gọi procedure
+
+        // Logic kiểm tra hiện tại của bạn đã khá tốt và trực tiếp sử dụng JPA repository.
+        // Việc dùng procedure KiemTraTrangThaiMay ở đây có thể là một lựa chọn nếu logic
+        // trong procedure phức tạp hơn hoặc bạn muốn tập trung logic kiểm tra trạng thái ở DB.
+        // Ví dụ nếu dùng procedure:
+        // if ("Đang sử dụng".equals(actualStatusFromDb)) {
+        //    if ("Khả dụng".equalsIgnoreCase(trangThaiMoi) || "Bảo trì".equalsIgnoreCase(trangThaiMoi)) {
+        //        throw new BadRequestException("Máy " + maMay + " đang được sử dụng (theo DB), không thể đặt thành '" + trangThaiMoi + "'.");
+        //    }
+        // } else if (!"Đang sử dụng".equals(actualStatusFromDb) && "Đang sử dụng".equalsIgnoreCase(trangThaiMoi)) {
+        //     // Logic này trong procedure KiemTraTrangThaiMay đã set là "Đang sử dụng" nếu có phiên.
+        //     // Việc cố gắng set thủ công sang "Đang sử dụng" khi không có phiên cần được xử lý cẩn thận.
+        //     // Logic hiện tại của bạn:
+        //     if (!phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()){
+        //         throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Đang sử dụng' thủ công. Trạng thái này được cập nhật tự động khi đăng nhập.");
+        //     }
+        // }
+
+
+        // Giữ lại logic kiểm tra hiện tại của bạn vì nó rõ ràng và sử dụng JPA trực tiếp:
+        if ("Khả dụng".equalsIgnoreCase(trangThaiMoi) && //
+                phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()) { //
+            throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Khả dụng' khi đang có phiên sử dụng."); //
         }
 
-        // Không cho phép đổi sang "Bảo trì" nếu máy đang có phiên sử dụng
-        if ("Bảo trì".equalsIgnoreCase(trangThaiMoi) &&
-                phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()) {
-            throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Bảo trì' khi đang có phiên sử dụng.");
+        if ("Bảo trì".equalsIgnoreCase(trangThaiMoi) && //
+                phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()) { //
+            throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Bảo trì' khi đang có phiên sử dụng."); //
+        }
+
+        if ("Đang sử dụng".equalsIgnoreCase(trangThaiMoi) && //
+                !phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()) { //
+            throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Đang sử dụng' thủ công. Trạng thái này được cập nhật tự động khi đăng nhập."); //
         }
 
 
-        // Nếu nhân viên cố tình set "Đang sử dụng" thủ công mà không qua login -> Cảnh báo hoặc không cho phép
-        if ("Đang sử dụng".equalsIgnoreCase(trangThaiMoi) &&
-                !phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()) {
-            throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Đang sử dụng' thủ công. Trạng thái này được cập nhật tự động khi đăng nhập.");
-        }
-
-
-        mayTinh.setTrangThai(trangThaiMoi);
-        return mayTinhRepository.save(mayTinh);
+        mayTinh.setTrangThai(trangThaiMoi); //
+        return mayTinhRepository.save(mayTinh); //
     }
 
     @Override

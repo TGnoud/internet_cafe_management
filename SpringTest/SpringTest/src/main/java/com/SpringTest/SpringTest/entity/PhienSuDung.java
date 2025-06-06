@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -31,4 +33,7 @@ public class PhienSuDung {
 
     @Column(name = "ThoiGianKetThuc")
     private LocalDateTime thoiGianKetThuc;
+
+    @Column(name = "TongTien")
+    private BigDecimal tongTien;
 }

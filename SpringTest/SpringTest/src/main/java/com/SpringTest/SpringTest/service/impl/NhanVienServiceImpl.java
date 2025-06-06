@@ -13,6 +13,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -94,5 +95,8 @@ public class NhanVienServiceImpl implements NhanVienService {
         //    throw new BadRequestException("Không thể xóa nhân viên vì đã có trong hóa đơn.");
         // }
         nhanVienRepository.delete(nhanVien);
+    }
+    public BigDecimal getEmployeeShiftSalary(String maNV, String maCaLamViec) {
+        return nhanVienRepository.calculateShiftSalary(maNV, maCaLamViec); // Gọi phương thức từ repository
     }
 }

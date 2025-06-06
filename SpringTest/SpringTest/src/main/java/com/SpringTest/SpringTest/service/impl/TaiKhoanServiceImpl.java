@@ -11,6 +11,7 @@ import com.SpringTest.SpringTest.exception.BadRequestException;
 import com.SpringTest.SpringTest.exception.ResourceNotFoundException;
 import com.SpringTest.SpringTest.repository.KhachHangRepository;
 import com.SpringTest.SpringTest.repository.LoaiKHRepository;
+import com.SpringTest.SpringTest.repository.PhienSuDungRepository;
 import com.SpringTest.SpringTest.repository.TaiKhoanRepository;
 import com.SpringTest.SpringTest.service.TaiKhoanService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,9 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private PhienSuDungRepository phienSuDungRepository;
     // Khi tạo tài khoản
     // taiKhoan.setMatKhau(passwordEncoder.encode(request.getMatKhau()));
 
@@ -178,5 +182,34 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
             response.setHoTenKH(taiKhoan.getKhachHang().getHoTen());
         }
         return response;
+    }
+    // Ví dụ sử dụng @Procedure từ TaiKhoanRepository
+    @Transactional // Đảm bảo tính nhất quán dữ liệu
+    public void napTienTaiKhoan(Integer maTaiKhoan, BigDecimal soTien) {
+        taiKhoanRepository.capNhatSoDu(maTaiKhoan, soTien);
+    }
+
+    @Transactional
+    public void dangKyTaiKhoanMoi(String hoTen, String email, String sdt, String tenTK, String matKhau, Integer maLoaiKH) {
+        // Nên có logic kiểm tra validate dữ liệu đầu vào ở đây
+        // Nên mã hóa mật khẩu (matKhau) trước khi lưu
+        taiKhoanRepository.themKhachHang(hoTen, email, sdt, tenTK, matKhau, maLoaiKH);
+    }
+
+    @Transactional
+    public void moPhienSuDung(Integer maTaiKhoan, Integer maMay) {
+        // Có thể thêm logic kiểm tra trạng thái máy, tài khoản ở đây trước khi gọi procedure
+        try {
+            phienSuDungRepository.batDauPhienSuDung(maTaiKhoan, maMay);
+        } catch (Exception e) {
+            // Xử lý lỗi, ví dụ: tài khoản không đủ tiền (do SIGNAL trong procedure)
+            System.err.println("Lỗi khi bắt đầu phiên sử dụng: " + e.getMessage());
+            throw new RuntimeException("Không thể bắt đầu phiên: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public void dongPhienSuDung(Integer maPhien) {
+        phienSuDungRepository.ketThucPhienSuDung(maPhien);
     }
 }

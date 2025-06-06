@@ -6,7 +6,16 @@ import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 import java.math.BigDecimal;
 import java.util.Set;
-
+@Entity
+@Table(name = "TaiKhoan")
+@NamedStoredProcedureQuery(
+        name = "TaiKhoan.capNhatSoDu", // Tên để tham chiếu từ Repository
+        procedureName = "CapNhatSoDuTaiKhoan", // Tên procedure trong DB
+        parameters = {
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_MaTaiKhoan", type = Integer.class),
+                @StoredProcedureParameter(mode = ParameterMode.IN, name = "p_SoTienNap", type = BigDecimal.class)
+        }
+)
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

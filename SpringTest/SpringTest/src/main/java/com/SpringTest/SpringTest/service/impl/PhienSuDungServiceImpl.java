@@ -3,6 +3,7 @@ package com.SpringTest.SpringTest.service.impl;
 import com.SpringTest.SpringTest.dto.response.PhienSuDungInfoResponse;
 import com.SpringTest.SpringTest.entity.MayTinh;
 import com.SpringTest.SpringTest.entity.PhienSuDung;
+import com.SpringTest.SpringTest.exception.BadRequestException; // Thêm import này
 import com.SpringTest.SpringTest.exception.ResourceNotFoundException;
 import com.SpringTest.SpringTest.repository.MayTinhRepository;
 import com.SpringTest.SpringTest.repository.PhienSuDungRepository;
@@ -12,7 +13,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional; // Thêm import này
+
 import java.math.BigDecimal;
+import java.time.LocalDateTime; // Thêm import này
 import java.util.stream.Collectors;
 import java.util.List;
 import java.time.temporal.ChronoUnit;
@@ -25,32 +29,62 @@ public class PhienSuDungServiceImpl implements PhienSuDungService {
     @Autowired
     private MayTinhRepository mayTinhRepository;
     // Helper method để map PhienSuDung sang PhienSuDungInfoResponse (đã có trong AuthServiceImpl, có thể tách ra class riêng hoặc copy)
-    private PhienSuDungInfoResponse mapToPhienSuDungInfoResponse(PhienSuDung phienSuDung) {
-        PhienSuDungInfoResponse response = new PhienSuDungInfoResponse();
-        response.setMaPhien(phienSuDung.getMaPhien());
-        response.setMaMay(phienSuDung.getMayTinh().getMaMay());
-        response.setTenMay(phienSuDung.getMayTinh().getTenMay());
-        response.setMaTK(phienSuDung.getTaiKhoan().getMaTK());
-        response.setTenTK(phienSuDung.getTaiKhoan().getTenTK());
-        response.setThoiGianBatDau(phienSuDung.getThoiGianBatDau());
-        response.setSoTienConLai(phienSuDung.getTaiKhoan().getSoTienConLai());
-        // Thêm thời gian kết thúc nếu có
-        if (phienSuDung.getThoiGianKetThuc() != null) {
-            response.setThoiGianKetThuc(phienSuDung.getThoiGianKetThuc()); // Cần thêm trường này vào DTO
+
+    @Transactional
+    public PhienSuDungInfoResponse endSessionAndCalculateCost(Integer maPhien, boolean apDungUuDai) {
+        PhienSuDung phien = phienSuDungRepository.findById(maPhien)
+                .orElseThrow(() -> new ResourceNotFoundException("Phiên " + maPhien + " không tìm thấy."));
+
+        if (phien.getThoiGianKetThuc() != null) {
+            throw new BadRequestException("Phiên " + maPhien + " đã kết thúc rồi.");
+        }
+
+        phien.setThoiGianKetThuc(LocalDateTime.now()); // Đặt thời gian kết thúc là hiện tại
+
+        // Gọi SQL function TinhChiPhiPhienSuDung qua repository
+        BigDecimal cost = phienSuDungRepository.calculateSessionCost(maPhien, apDungUuDai);
+        phien.setTongTien(cost);
+
+        // Cập nhật trạng thái máy tính thành "Khả dụng"
+        MayTinh mayTinh = phien.getMayTinh();
+        if (mayTinh != null) {
+            mayTinh.setTrangThai("Khả dụng"); // Giả sử "Khả dụng" là trạng thái đúng
+            mayTinhRepository.save(mayTinh);
+        }
+
+        PhienSuDung updatedPhien = phienSuDungRepository.save(phien);
+        return mapToPhienSuDungInfoResponse(updatedPhien); // Trả về thông tin phiên đã cập nhật
+    }
+    private PhienSuDungInfoResponse mapToPhienSuDungInfoResponse(PhienSuDung phienSuDung) { //
+        PhienSuDungInfoResponse response = new PhienSuDungInfoResponse(); //
+        response.setMaPhien(phienSuDung.getMaPhien()); //
+        response.setMaMay(phienSuDung.getMayTinh().getMaMay()); //
+        response.setTenMay(phienSuDung.getMayTinh().getTenMay()); //
+        response.setMaTK(phienSuDung.getTaiKhoan().getMaTK()); //
+        response.setTenTK(phienSuDung.getTaiKhoan().getTenTK()); //
+        response.setThoiGianBatDau(phienSuDung.getThoiGianBatDau()); //
+        response.setSoTienConLai(phienSuDung.getTaiKhoan().getSoTienConLai()); //
+
+        if (phienSuDung.getThoiGianKetThuc() != null) { //
+            response.setThoiGianKetThuc(phienSuDung.getThoiGianKetThuc()); //
+        }
+        // Hiển thị tổng tiền nếu phiên đã kết thúc
+        if (phienSuDung.getTongTien() != null) {
+            response.setTongTienPhien(phienSuDung.getTongTien()); // Giả sử bạn thêm trường tongTienPhien vào DTO
         }
 
 
-        BigDecimal giaTheoGio = phienSuDung.getMayTinh().getLoaiMay().getGiaTheoGio();
-        if (phienSuDung.getThoiGianKetThuc() == null && // Chỉ tính cho phiên đang chạy
-                phienSuDung.getTaiKhoan().getSoTienConLai().compareTo(BigDecimal.ZERO) > 0 &&
-                giaTheoGio.compareTo(BigDecimal.ZERO) > 0) {
-            BigDecimal thoiGianConLaiPhut = phienSuDung.getTaiKhoan().getSoTienConLai()
-                    .divide(giaTheoGio.divide(BigDecimal.valueOf(60), 2, BigDecimal.ROUND_HALF_UP), 0, BigDecimal.ROUND_DOWN);
-            response.setThoiGianConLaiDuKienPhut(thoiGianConLaiPhut.longValue());
+        BigDecimal giaTheoGio = phienSuDung.getMayTinh().getLoaiMay().getGiaTheoGio(); //
+        if (phienSuDung.getThoiGianKetThuc() == null && //
+                phienSuDung.getTaiKhoan().getSoTienConLai().compareTo(BigDecimal.ZERO) > 0 && //
+                giaTheoGio.compareTo(BigDecimal.ZERO) > 0) { //
+            BigDecimal thoiGianConLaiPhut = phienSuDung.getTaiKhoan().getSoTienConLai() //
+                    .divide(giaTheoGio.divide(BigDecimal.valueOf(60), 2, BigDecimal.ROUND_HALF_UP), 0, BigDecimal.ROUND_DOWN); //
+            response.setThoiGianConLaiDuKienPhut(thoiGianConLaiPhut.longValue()); //
         } else {
-            response.setThoiGianConLaiDuKienPhut(0L);
+            response.setThoiGianConLaiDuKienPhut(0L); //
         }
-        return response;
+        return response; //
     }
 
 

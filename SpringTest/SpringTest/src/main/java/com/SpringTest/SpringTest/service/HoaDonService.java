@@ -11,4 +11,5 @@ public interface HoaDonService {
     List<HoaDonDTO> getHoaDonByMaTK(String maTK);
     List<HoaDonDTO> getHoaDonByMaNV(String maNV);
     // Thêm các phương thức tìm kiếm, thống kê khác nếu cần
+
 }
