@@ -20,11 +20,4 @@ public class LoaiKHServiceImpl implements LoaiKHService {
         return loaiKHRepository.findAll();
     }
 
-    @Override
-    public LoaiKH getLoaiKHById(String maLoaiKH) {
-        return loaiKHRepository.findById(maLoaiKH)
-                .orElseThrow(() -> new ResourceNotFoundException("Loại khách hàng không tồn tại: " + maLoaiKH));
-    }
-
-    // Implement các phương thức CRUD khác cho LoaiKH nếu Admin có thể quản lý
 }

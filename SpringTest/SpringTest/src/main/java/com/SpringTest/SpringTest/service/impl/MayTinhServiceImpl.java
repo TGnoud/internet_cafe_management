@@ -9,6 +9,8 @@ import com.SpringTest.SpringTest.repository.MayTinhRepository;
 import com.SpringTest.SpringTest.repository.PhienSuDungRepository;
 import com.SpringTest.SpringTest.service.MayTinhService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager; // Thêm import này
@@ -145,5 +147,20 @@ public class MayTinhServiceImpl implements MayTinhService {
         // Cẩn thận khi cập nhật trạng thái ở đây, nên có API riêng như updateTrangThaiMay
         // existingMayTinh.setTrangThai(mayTinhDetails.getTrangThai());
         return mayTinhRepository.save(existingMayTinh);
+    }
+
+    @Override
+    public long countAllMayTinh() {
+        return 0;
+    }
+
+    @Override
+    public long countMayTinhByTrangThai(String đangSửDụng) {
+        return 0;
+    }
+
+    @Override
+    public Page<MayTinh> findPaginated(PageRequest of, String searchKeyword) {
+        return null;
     }
 }

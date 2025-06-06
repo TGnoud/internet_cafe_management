@@ -20,7 +20,6 @@ public class LoaiMayServiceImpl implements LoaiMayService {
         return loaiMayRepository.findAll();
     }
 
-    @Override
     public LoaiMay getLoaiMayById(String maLoaiMay) {
         return loaiMayRepository.findById(maLoaiMay)
                 .orElseThrow(() -> new ResourceNotFoundException("Loại máy không tồn tại: " + maLoaiMay));

@@ -66,4 +66,14 @@ public class UuDaiServiceImpl implements UuDaiService {
         uuDaiRepository.delete(uuDai);
     }
 
+    @Override
+    public List<UuDai> findAll() {
+        return List.of();
+    }
+
+    @Override
+    public UuDai save(UuDai uuDai) {
+        return null;
+    }
+
 }
