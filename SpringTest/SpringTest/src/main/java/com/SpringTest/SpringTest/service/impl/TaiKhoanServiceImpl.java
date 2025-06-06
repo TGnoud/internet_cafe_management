@@ -157,19 +157,24 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         return mapToTaiKhoanInfoResponse(savedTaiKhoan);
     }
 
-    @Override
+    @@Override
     @Transactional
-    public TaiKhoanInfoResponse napTien(NapTienRequest request) {
-        TaiKhoan taiKhoan = taiKhoanRepository.findById(request.getMaTK())
-                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản không tìm thấy: " + request.getMaTK()));
-
-        if (request.getSoTienNap().compareTo(BigDecimal.ZERO) <= 0) {
+    public TaiKhoan napTien(String maTK, NapTienRequest napTienRequest) {
+        if (napTienRequest.getSoTien().compareTo(BigDecimal.ZERO) <= 0) {
             throw new BadRequestException("Số tiền nạp phải lớn hơn 0.");
         }
 
-        taiKhoan.setSoTienConLai(taiKhoan.getSoTienConLai().add(request.getSoTienNap()));
-        TaiKhoan updatedTaiKhoan = taiKhoanRepository.save(taiKhoan);
-        return mapToTaiKhoanInfoResponse(updatedTaiKhoan);
+        TaiKhoan taiKhoan = taiKhoanRepository.findById(maTK)
+                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản " + maTK + " không tồn tại."));
+
+        BigDecimal soTienMoi = taiKhoan.getSoTienConLai().add(napTienRequest.getSoTien());
+        taiKhoan.setSoTienConLai(soTienMoi);
+
+        // Mở rộng: Ghi lại giao dịch nạp tiền vào một bảng GiaoDich để đối soát
+        // GiaoDich newTx = new GiaoDich(taiKhoan, napTienRequest.getSoTien(), "Nạp tiền");
+        // giaoDichRepository.save(newTx);
+
+        return taiKhoanRepository.save(taiKhoan);
     }
 
     private TaiKhoanInfoResponse mapToTaiKhoanInfoResponse(TaiKhoan taiKhoan) {

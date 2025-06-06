@@ -3,10 +3,12 @@ package com.SpringTest.SpringTest.service.impl;
 import com.SpringTest.SpringTest.dto.response.PhienSuDungInfoResponse;
 import com.SpringTest.SpringTest.entity.MayTinh;
 import com.SpringTest.SpringTest.entity.PhienSuDung;
+import com.SpringTest.SpringTest.entity.TaiKhoan;
 import com.SpringTest.SpringTest.exception.BadRequestException; // Thêm import này
 import com.SpringTest.SpringTest.exception.ResourceNotFoundException;
 import com.SpringTest.SpringTest.repository.MayTinhRepository;
 import com.SpringTest.SpringTest.repository.PhienSuDungRepository;
+import com.SpringTest.SpringTest.repository.TaiKhoanRepository;
 import com.SpringTest.SpringTest.service.PhienSuDungService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -29,7 +31,52 @@ public class PhienSuDungServiceImpl implements PhienSuDungService {
     @Autowired
     private MayTinhRepository mayTinhRepository;
     // Helper method để map PhienSuDung sang PhienSuDungInfoResponse (đã có trong AuthServiceImpl, có thể tách ra class riêng hoặc copy)
+    @Autowired
+    private TaiKhoanRepository taiKhoanRepository;
+    @Override
+    @Transactional // Rất quan trọng: Đảm bảo toàn vẹn dữ liệu
+    public PhienSuDungInfoResponse endSessionAndFinalize(Integer maPhien, boolean apDungUuDai) {
+        // 1. Lấy phiên sử dụng từ CSDL
+        PhienSuDung phien = phienSuDungRepository.findById(maPhien)
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phiên sử dụng với mã: " + maPhien));
 
+        if (phien.getThoiGianKetThuc() != null) {
+            throw new BadRequestException("Phiên này đã được kết thúc trước đó.");
+        }
+
+        // 2. Đặt thời gian kết thúc
+        phien.setThoiGianKetThuc(LocalDateTime.now());
+        phienSuDungRepository.saveAndFlush(phien); // Lưu để SQL function có thể thấy được thời gian kết thúc
+
+        // 3. Tính tổng tiền giờ chơi (gọi SQL function đã tích hợp)
+        BigDecimal chiPhiGioChoi = phienSuDungRepository.calculateSessionCost(maPhien, apDungUuDai);
+        phien.setTongTien(chiPhiGioChoi);
+
+        // (Mở rộng trong tương lai) 4. Tính tổng tiền dịch vụ
+        // BigDecimal chiPhiDichVu = hoaDonService.calculateUnpaidServiceBills(phien.getTaiKhoan().getMaTK());
+        // BigDecimal tongChiPhi = chiPhiGioChoi.add(chiPhiDichVu);
+
+        // 5. Cập nhật số dư tài khoản
+        TaiKhoan taiKhoan = phien.getTaiKhoan();
+        BigDecimal soTienConLai = taiKhoan.getSoTienConLai().subtract(chiPhiGioChoi);
+
+        if (soTienConLai.compareTo(BigDecimal.ZERO) < 0) {
+            // Xử lý trường hợp không đủ tiền (ví dụ: không cho kết thúc hoặc ghi nợ)
+            // Tạm thời vẫn cho phép để ghi nhận chi phí
+            System.out.println("Cảnh báo: Tài khoản " + taiKhoan.getTenTK() + " có số dư âm.");
+        }
+        taiKhoan.setSoTienConLai(soTienConLai);
+        taiKhoanRepository.save(taiKhoan);
+
+        // 6. Cập nhật trạng thái máy tính
+        MayTinh mayTinh = phien.getMayTinh();
+        mayTinh.setTrangThai("Khả dụng");
+        mayTinhRepository.save(mayTinh);
+
+        PhienSuDung phienDaLuu = phienSuDungRepository.save(phien);
+
+        return mapToPhienSuDungInfoResponse(phienDaLuu);
+    }
     @Transactional
     public PhienSuDungInfoResponse endSessionAndCalculateCost(Integer maPhien, boolean apDungUuDai) {
         PhienSuDung phien = phienSuDungRepository.findById(maPhien)
@@ -116,6 +163,11 @@ public class PhienSuDungServiceImpl implements PhienSuDungService {
                 .map(this::mapToPhienSuDungInfoResponse)
                 .collect(Collectors.toList());
         return new PageImpl<>(dtos, pageable, phienPage.getTotalElements());
+    }
+
+    @Override
+    public BigDecimal getTotalRevenueToday() {
+        return null;
     }
 
     @Override

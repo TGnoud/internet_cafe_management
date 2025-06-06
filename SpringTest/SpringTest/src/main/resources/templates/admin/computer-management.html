@@ -1,99 +1,94 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{admin/admin-layout.html}">
 <head>
-    <meta charset="UTF-8">
-    <title>Quản Lý Máy Tính</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        /* Custom CSS */
-    </style>
+    <title th:text="${mayTinh.maMay == null} ? 'Thêm máy tính mới' : 'Sửa thông tin máy tính'"></title>
+    <meta charset="utf-8">
 </head>
 <body>
-<div class="container mt-4">
-    <h2>Quản Lý Máy Tính</h2>
+<div layout:fragment="content">
+    <h1 th:text="${mayTinh.maMay == null} ? 'Thêm máy tính mới' : 'Sửa thông tin máy tính'"></h1>
 
-    <div th:if="${param.success}" class="alert alert-success">Thao tác thành công!</div>
-    <div th:if="${param.error}" class="alert alert-danger">Có lỗi xảy ra!</div>
+    <form id="computerForm" th:object="${mayTinh}">
+        <input type="hidden" th:field="*{maMay}" />
 
-    <h4>Thêm Máy Tính Mới (Ví dụ với Thymeleaf form)</h4>
-    <form th:action="@{/admin/pages/computers/add}" th:object="${newComputer}" method="post" class="mb-4">
         <div class="form-group">
-            <label for="maMay">Mã Máy:</label>
-            <input type="text" th:field="*{maMay}" class="form-control" id="maMay" required/>
+            <label for="maMayInput">Mã máy</label>
+            <input type="text" id="maMayInput" th:field="*{maMay}" class="form-control" th:readonly="${mayTinh.maMay != null}" />
         </div>
+
         <div class="form-group">
-            <label for="tenMay">Tên Máy:</label>
-            <input type="text" th:field="*{tenMay}" class="form-control" id="tenMay" required/>
+            <label for="tenMay">Tên máy</label>
+            <input type="text" id="tenMay" th:field="*{tenMay}" class="form-control" required/>
         </div>
+
         <div class="form-group">
-            <label for="trangThai">Trạng Thái:</label>
-            <input type="text" th:field="*{trangThai}" class="form-control" id="trangThai"/>
+            <label for="loaiMay">Loại máy</label>
+            <select id="loaiMay" th:field="*{loaiMay.maLoaiMay}" class="form-control" required>
+                <option value="">-- Chọn loại máy --</option>
+                <option th:each="loai : ${loaiMayList}"
+                        th:value="${loai.maLoaiMay}"
+                        th:text="${loai.tenLoaiMay}"></option>
+            </select>
         </div>
-        <button type="submit" class="btn btn-primary">Thêm Máy</button>
+
+        <div class="form-group">
+            <label for="trangThai">Trạng thái</label>
+            <input type="text" id="trangThai" th:field="*{trangThai}" class="form-control" />
+        </div>
+
+        <button type="submit" class="btn btn-success">Lưu</button>
+        <a th:href="@{/admin/manage-computers}" class="btn btn-secondary">Hủy</a>
     </form>
 
-    <hr/>
+    <script>
+        document.getElementById('computerForm').addEventListener('submit', function(event) {
+            event.preventDefault(); // Ngăn form submit theo cách truyền thống
 
-    <h4>Danh Sách Máy Tính</h4>
-    <table class="table table-striped">
-        <thead>
-        <tr>
-            <th>Mã Máy</th>
-            <th>Tên Máy</th>
-            <th>Loại Máy</th>
-            <th>Trạng Thái</th>
-            <th>Hành động</th>
-        </tr>
-        </thead>
-        <tbody>
-        <tr th:each="computer : ${computers}">
-            <td th:text="${computer.maMay}"></td>
-            <td th:text="${computer.tenMay}"></td>
-            <td th:text="${computer.loaiMay != null ? computer.loaiMay.maLoaiMay : 'N/A'}"></td>
-            <td th:text="${computer.trangThai}"></td>
-            <td>
-                <button th:onclick="'editComputer(\'' + ${computer.maMay} + '\')'" class="btn btn-sm btn-warning">Sửa</button>
-                <button th:onclick="'deleteComputer(\'' + ${computer.maMay} + '\')'" class="btn btn-sm btn-danger">Xóa</button>
-            </td>
-        </tr>
-        </tbody>
-    </table>
-</div>
+            const form = event.target;
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
 
-<script>
-    // JavaScript để gọi API cho việc Sửa/Xóa
-    // Ví dụ:
-    function editComputer(maMay) {
-        // Hiển thị modal, load dữ liệu máy tính bằng API GET /api/manager/computers/{maMay}
-        // Điền vào form trong modal
-        // Submit form trong modal bằng API PUT /api/manager/computers/{maMay}
-        console.log("Sửa máy: " + maMay);
-        // window.location.href = '/admin/pages/computers/edit/' + maMay; // Hoặc cách khác
-    }
-
-    async function deleteComputer(maMay) {
-        if (confirm('Bạn có chắc chắn muốn xóa máy ' + maMay + '?')) {
-            try {
-                const response = await fetch(`/api/manager/computers/${maMay}`, { // Gọi REST API đã tạo
-                    method: 'DELETE',
-                    headers: {
-                        // 'Authorization': 'Bearer YOUR_JWT_TOKEN', // Nếu có security
-                        'Content-Type': 'application/json'
-                    }
-                });
-                if (response.ok) {
-                    alert('Xóa máy thành công!');
-                    window.location.reload(); // Tải lại trang
-                } else {
-                    const errorData = await response.json();
-                    alert('Lỗi khi xóa máy: ' + (errorData.message || response.statusText));
+            // Tạo object lồng nhau cho loaiMay
+            const submitData = {
+                maMay: data.maMay,
+                tenMay: data.tenMay,
+                trangThai: data.trangThai,
+                loaiMay: {
+                    maLoaiMay: data['loaiMay.maLoaiMay']
                 }
-            } catch (error) {
+            };
+
+            const isEditing = submitData.maMay && submitData.maMay !== '';
+            const url = isEditing ? '/api/manager/computers/' + submitData.maMay : '/api/manager/computers';
+            const method = isEditing ? 'PUT' : 'POST';
+
+            fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    // Thêm header Authorization nếu API yêu cầu
+                    'Authorization': 'Bearer ' + localStorage.getItem('jwtToken')
+                },
+                body: JSON.stringify(submitData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || 'Đã có lỗi xảy ra'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                alert('Lưu thành công!');
+                window.location.href = '/admin/manage-computers'; // Quay về trang danh sách
+            })
+            .catch(error => {
                 console.error('Lỗi:', error);
-                alert('Đã xảy ra lỗi không mong muốn.');
-            }
-        }
-    }
-</script>
+                alert('Lỗi: ' + error.message);
+            });
+        });
+    </script>
+</div>
 </body>
 </html>

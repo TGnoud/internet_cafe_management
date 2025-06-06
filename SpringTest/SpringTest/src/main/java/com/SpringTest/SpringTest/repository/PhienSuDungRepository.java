@@ -33,4 +33,6 @@ public interface PhienSuDungRepository extends JpaRepository<PhienSuDung, Intege
     void ketThucPhienSuDung(@Param("p_MaPhien") Integer maPhien);
     @Query(value = "SELECT TinhChiPhiPhienSuDung(:maPhien, :apDungUuDai)", nativeQuery = true)
     BigDecimal calculateSessionCost(@Param("maPhien") Integer maPhien, @Param("apDungUuDai") boolean apDungUuDai);
+    @Query(value = "SELECT GetTotalRevenueToday()", nativeQuery = true)
+    BigDecimal getTotalRevenueToday();
 }

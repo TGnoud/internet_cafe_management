@@ -10,4 +10,7 @@ public class NapTienRequest {
 
     public NapTienRequest(String maTK, Object o) {
     }
+
+    public BigDecimal getSoTien() {
+    }
 }

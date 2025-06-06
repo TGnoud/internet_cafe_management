@@ -40,6 +40,7 @@ public class HoaDonServiceImpl implements HoaDonService {
     public BigDecimal tinhTongTienDichVuCuaHoaDon(Integer maHoaDon) {
         return hoaDonDVRepository.getTongTienDichVu(maHoaDon);
     }
+
     public BigDecimal getServiceBillTotalCost(String maHD, boolean applyDiscount) {
         // Kiểm tra xem hóa đơn có tồn tại không nếu cần
         // HoaDonDV hoaDon = hoaDonDVRepository.findById(maHD)
@@ -47,6 +48,7 @@ public class HoaDonServiceImpl implements HoaDonService {
 
         return hoaDonDVRepository.calculateServiceBillCost(maHD, applyDiscount);
     }
+
     @Override
     @Transactional
     public HoaDonDTO createHoaDon(CreateHoaDonRequest request) {
@@ -208,5 +210,47 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
 
         return dto;
+    }
+
+    @Override
+    @Transactional
+    public HoaDonDV createHoaDonDV(CreateHoaDonRequest request) {
+        // 1. Lấy các đối tượng liên quan
+        TaiKhoan taiKhoan = taiKhoanRepository.findById(request.getMaTK())
+                .orElseThrow(() -> new ResourceNotFoundException("Tài khoản không tồn tại"));
+        NhanVien nhanVien = nhanVienRepository.findById(request.getMaNV())
+                .orElseThrow(() -> new ResourceNotFoundException("Nhân viên không tồn tại"));
+
+        // 2. Tạo hóa đơn chính
+        HoaDonDV hoaDonDV = new HoaDonDV();
+        hoaDonDV.setTaiKhoan(taiKhoan);
+        hoaDonDV.setNhanVien(nhanVien);
+        hoaDonDV.setNgayLap(LocalDateTime.now());
+        // Giả sử chưa thanh toán
+        // hoaDonDV.setTrangThaiThanhToan(false);
+
+        HoaDonDV savedHoaDon = hoaDonDVRepository.save(hoaDonDV);
+
+        // 3. Tạo các chi tiết hóa đơn
+        for (CreateHoaDonRequest.OrderItemDTO item : request.getItems()) {
+            DichVu dichVu = dichVuRepository.findById(item.getMaDV())
+                    .orElseThrow(() -> new ResourceNotFoundException("Dịch vụ " + item.getMaDV() + " không tồn tại"));
+
+            ChiTietHoaDonDVId chiTietId = new ChiTietHoaDonDVId(savedHoaDon.getMaHD(), dichVu.getMaDV());
+            ChiTietHoaDonDV chiTiet = new ChiTietHoaDonDV();
+            chiTiet.setId(chiTietId);
+            chiTiet.setHoaDonDV(savedHoaDon);
+            chiTiet.setDichVu(dichVu);
+            chiTiet.setSoLuong(item.getSoLuong());
+            chiTiet.setDonGia(dichVu.getDonGia()); // Lấy giá từ DB để đảm bảo chính xác
+
+            chiTietHoaDonDVRepository.save(chiTiet);
+        }
+
+        return savedHoaDon;
+    }
+
+    public BigDecimal calculateBillTotal(String maHD, boolean applyDiscount) {
+        return hoaDonDVRepository.calculateServiceBillCost(maHD, applyDiscount);
     }
 }

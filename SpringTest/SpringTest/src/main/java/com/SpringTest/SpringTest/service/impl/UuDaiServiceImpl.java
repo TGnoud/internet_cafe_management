@@ -65,4 +65,5 @@ public class UuDaiServiceImpl implements UuDaiService {
         // }
         uuDaiRepository.delete(uuDai);
     }
+
 }

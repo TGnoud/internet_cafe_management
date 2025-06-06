@@ -1,7 +1,9 @@
 package com.SpringTest.SpringTest.controller;
 
 import com.SpringTest.SpringTest.entity.MayTinh;
+import com.SpringTest.SpringTest.entity.UuDai;
 import com.SpringTest.SpringTest.service.MayTinhService;
+import com.SpringTest.SpringTest.service.UuDaiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,7 +19,8 @@ public class ManagerController {
 
     @Autowired
     private MayTinhService mayTinhService;
-
+    @Autowired
+    private UuDaiService uuDaiService;
     @PostMapping("/computers")
     public ResponseEntity<MayTinh> addMayTinh(@RequestBody MayTinh mayTinh) { // Nên dùng DTO
         return new ResponseEntity<>(mayTinhService.addMayTinh(mayTinh), HttpStatus.CREATED);
@@ -44,5 +47,13 @@ public class ManagerController {
         return ResponseEntity.ok("Đã xóa máy tính: " + maMay);
     }
 
-    // TODO: Thêm API cho quản lý nhân viên, quản lý loại máy, ưu đãi, etc.
+    @GetMapping("/promotions")
+    public ResponseEntity<List<UuDai>> getAllPromotions() {
+        return ResponseEntity.ok(uuDaiService.findAll());
+    }
+
+    @PostMapping("/promotions")
+    public ResponseEntity<UuDai> createPromotion(@RequestBody UuDai uuDai) { // Nên dùng DTO
+        return ResponseEntity.status(HttpStatus.CREATED).body(uuDaiService.save(uuDai));
+    }
 }

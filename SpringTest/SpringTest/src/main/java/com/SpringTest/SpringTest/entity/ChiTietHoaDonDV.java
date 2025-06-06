@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+
+import java.math.BigDecimal;
 // Bỏ import java.math.BigDecimal; vì không có trường nào dùng trong DDL này (trừ khi bạn muốn thêm Thành Tiền)
 
 @Data
@@ -28,6 +30,9 @@ public class ChiTietHoaDonDV {
 
     @Column(name = "SoLuong", nullable = false)
     private Integer soLuong;
+
+    public void setDonGia(BigDecimal donGia) {
+    }
 
     // Nếu muốn tính toán và lưu Thành Tiền, bạn có thể thêm:
     // @Column(name = "ThanhTien", nullable = false, precision = 10, scale = 2)

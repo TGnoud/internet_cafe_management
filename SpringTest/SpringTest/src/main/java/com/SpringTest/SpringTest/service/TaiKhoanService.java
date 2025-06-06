@@ -8,6 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public interface TaiKhoanService {
     TaiKhoanInfoResponse getTaiKhoanInfo(String maTK);
@@ -20,5 +21,7 @@ public interface TaiKhoanService {
     TaiKhoan findEntityByMaTK(String maTK);
 
     Page<TaiKhoanInfoResponse> getAllKhachHangTaiKhoanPageable(Pageable pageable);
+
+    long countNewAccountsSince(LocalDateTime startOfDay);
     // Thêm các phương thức khác nếu cần
 }

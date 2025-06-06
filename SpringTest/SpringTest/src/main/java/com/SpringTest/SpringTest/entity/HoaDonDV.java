@@ -35,4 +35,7 @@ public class HoaDonDV {
 
     @OneToMany(mappedBy = "hoaDonDV", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<ChiTietHoaDonDV> chiTietHoaDonDVs;
+
+    public void setNgayLap(LocalDateTime now) {
+    }
 }

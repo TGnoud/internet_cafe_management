@@ -1,61 +1,63 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::mainContent})}">
+<html lang="en" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{admin/admin-layout.html}">
 <head>
-  <title>Quản Lý Máy Tính</title>
+  <title>Quản lý Máy tính</title>
   <meta charset="utf-8">
 </head>
 <body>
-<main th:fragment="mainContent">
-  <h2 class="section-title">Danh Sách Máy Tính</h2>
-  <a th:href="@{/admin/computers/add}" class="btn-add">Thêm Máy Tính Mới</a>
-  <table>
+<div layout:fragment="content">
+  <h1>Quản lý Máy tính</h1>
+
+  <a th:href="@{/admin/computer-form}" class="btn btn-primary mb-3">Thêm máy tính mới</a>
+
+  <form th:action="@{/admin/manage-computers}" method="get" class="form-inline mb-3">
+    <input type="text" name="keyword" th:value="${keyword}" class="form-control mr-2" placeholder="Tìm theo tên máy..."/>
+    <button type="submit" class="btn btn-info">Tìm kiếm</button>
+  </form>
+
+  <table class="table table-bordered table-striped">
     <thead>
     <tr>
-      <th>Mã Máy</th>
-      <th>Tên Máy</th>
-      <th>Loại Máy</th>
-      <th>Trạng Thái</th>
-      <th>Hành Động</th>
+      <th>Mã máy</th>
+      <th>Tên máy</th>
+      <th>Loại máy</th>
+      <th>Trạng thái</th>
+      <th>Hành động</th>
     </tr>
     </thead>
     <tbody>
-    <tr th:each="may : ${danhSachMayTinh}">
-      <td th:text="${may.maMay}">MT01</td>
-      <td th:text="${may.tenMay}">Máy 01</td>
-      <td th:text="${may.loaiMay != null ? may.loaiMay.maLoaiMay : 'N/A'}">VIP</td>
-      <td th:text="${may.trangThai}">Khả dụng</td>
-      <td class="action-buttons">
-        <a th:href="@{/admin/computers/edit/{maMay}(maMay=${may.maMay})}" class="btn-edit">Sửa</a>
-        <button class="btn-delete" th:attr="onclick=|deleteComputer('${may.maMay}')|">Xóa</button>
+    <tr th:each="computer : ${computerPage.content}">
+      <td th:text="${computer.maMay}"></td>
+      <td th:text="${computer.tenMay}"></td>
+      <td th:text="${computer.loaiMay.tenLoaiMay}"></td>
+      <td th:text="${computer.trangThai}"></td>
+      <td>
+        <a th:href="@{/admin/computer-form/{id}(id=${computer.maMay})}" class="btn btn-warning btn-sm">Sửa</a>
+
+        <button th:onclick="|deleteItem('${computer.maMay}', '/api/manager/computers/' + '${computer.maMay}')|"
+                class="btn btn-danger btn-sm">Xóa</button>
       </td>
-    </tr>
-    <tr th:if="${#lists.isEmpty(danhSachMayTinh)}">
-      <td colspan="5" style="text-align: center;">Không có máy tính nào.</td>
     </tr>
     </tbody>
   </table>
-  <script>
-    function deleteComputer(maMay) {
-        if (confirm('Bạn có chắc chắn muốn xóa máy ' + maMay + '?')) {
-            fetch('/api/manager/computers/' + maMay, { // Gọi API DELETE của ManagerController
-                method: 'DELETE',
-                headers: {
-                    // 'Authorization': 'Bearer ' + yourAuthToken, // Nếu API yêu cầu token
-                    // '_csrf_token': yourCsrfToken // Nếu dùng CSRF protection
-                }
-            })
-            .then(response => {
-                if (response.ok) {
-                    alert('Xóa máy ' + maMay + ' thành công!');
-                    window.location.reload(); // Tải lại trang
-                } else {
-                    response.text().then(text => alert('Lỗi khi xóa máy: ' + text));
-                }
-            })
-            .catch(error => console.error('Lỗi:', error));
-        }
-    }
-  </script>
-</main>
+
+  <nav aria-label="Page navigation" th:if="${computerPage.totalPages > 1}">
+    <ul class="pagination">
+      <li class="page-item" th:classappend="${computerPage.hasPrevious()} ? '' : 'disabled'">
+        <a class="page-link" th:href="@{/admin/manage-computers(page=${computerPage.number}, size=${computerPage.size}, keyword=${keyword})}">Trước</a>
+      </li>
+
+      <li class="page-item" th:each="pageNumber : ${pageNumbers}" th:classappend="${pageNumber == computerPage.number + 1} ? 'active' : ''">
+        <a class="page-link" th:href="@{/admin/manage-computers(page=${pageNumber}, size=${computerPage.size}, keyword=${keyword})}" th:text="${pageNumber}"></a>
+      </li>
+
+      <li class="page-item" th:classappend="${computerPage.hasNext()} ? '' : 'disabled'">
+        <a class="page-link" th:href="@{/admin/manage-computers(page=${computerPage.number + 2}, size=${computerPage.size}, keyword=${keyword})}">Sau</a>
+      </li>
+    </ul>
+  </nav>
+</div>
 </body>
 </html>

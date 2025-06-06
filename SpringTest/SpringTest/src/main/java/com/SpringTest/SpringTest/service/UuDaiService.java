@@ -13,4 +13,8 @@ public interface UuDaiService {
     UuDai saveUuDai(UuDai uuDai); // Hoặc nhận UuDaiFormDTO
     UuDai updateUuDai(String maUuDai, UuDai uuDaiDetails); // Hoặc nhận DTO
     void deleteUuDai(String maUuDai);
+
+    List<UuDai> findAll();
+
+    UuDai save(UuDai uuDai);
 }

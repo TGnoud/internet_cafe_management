@@ -1,6 +1,8 @@
 package com.SpringTest.SpringTest.service;
 
 import com.SpringTest.SpringTest.entity.MayTinh;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.List;
 
@@ -11,4 +13,10 @@ public interface MayTinhService {
     MayTinh addMayTinh(MayTinh mayTinh); // Cho Manager
     void deleteMayTinh(String maMay); // Cho Manager
     MayTinh updateMayTinh(String maMay, MayTinh mayTinhDetails); // Cho Manager
+
+    long countAllMayTinh();
+
+    long countMayTinhByTrangThai(String đangSửDụng);
+
+    Page<MayTinh> findPaginated(PageRequest of, String searchKeyword);
 }

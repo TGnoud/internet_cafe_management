@@ -8,6 +8,7 @@ import com.SpringTest.SpringTest.dto.request.MayTinhStatusRequest;
 import com.SpringTest.SpringTest.dto.request.NapTienRequest;
 import com.SpringTest.SpringTest.dto.response.PhienSuDungInfoResponse;
 import com.SpringTest.SpringTest.dto.response.TaiKhoanInfoResponse;
+import com.SpringTest.SpringTest.entity.HoaDonDV;
 import com.SpringTest.SpringTest.entity.MayTinh;
 import com.SpringTest.SpringTest.exception.BadRequestException;
 import com.SpringTest.SpringTest.service.*;
@@ -19,8 +20,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import java.util.List;
 // import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 @RestController
 @RequestMapping("/api/employee")
 // @PreAuthorize("hasRole('EMPLOYEE') or hasRole('MANAGER')")
@@ -132,7 +135,20 @@ public class EmployeeController {
          return ResponseEntity.ok(new ArrayList<>()); // Placeholder
     }
     */
-
+    @PostMapping("/sessions/{maPhien}/end")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<PhienSuDungInfoResponse> endSession(@PathVariable Integer maPhien) {
+        // Giả sử ưu đãi được áp dụng tự động theo logic trong SQL function
+        boolean apDungUuDai = true;
+        PhienSuDungInfoResponse response = phienSuDungService.endSessionAndCalculateCost(maPhien, apDungUuDai);
+        return ResponseEntity.ok(response);
+    }
+    @PostMapping("/service-bills")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<HoaDonDV> createServiceBill(@RequestBody CreateHoaDonRequest request) {
+        HoaDonDV newBill = hoaDonService.createHoaDonDV(request); // Cần tạo method này trong service
+        return ResponseEntity.status(HttpStatus.CREATED).body(newBill);
+    }
     @PostMapping("/customers/create")
     public ResponseEntity<TaiKhoanInfoResponse> createCustomerAccount(@RequestBody CreateTaiKhoanRequest request) {
         return ResponseEntity.ok(taiKhoanService.createTaiKhoanKhachHang(request));
@@ -149,5 +165,24 @@ public class EmployeeController {
         return ResponseEntity.ok(updatedMayTinh);
     }
 
-    // TODO: Thêm các API cho Quản lý dịch vụ, Theo dõi phiên sử dụng, Lập hóa đơn
+    @PostMapping("/sessions/{maPhien}/end")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<PhienSuDungInfoResponse> endSession(@PathVariable Integer maPhien) {
+        // Mặc định là có áp dụng ưu đãi khi tính tiền.
+        // Trong tương lai, có thể truyền vào từ request (ví dụ: một checkbox trên UI).
+        boolean apDungUuDai = true;
+
+        PhienSuDungInfoResponse finalizedSession = phienSuDungService.endSessionAndFinalize(maPhien, apDungUuDai);
+        return ResponseEntity.ok(finalizedSession);
+    }
+    @PostMapping("/service-orders")
+    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
+    public ResponseEntity<HoaDonDV> createServiceOrder(@RequestBody CreateHoaDonRequest request) {
+        // Gán mã nhân viên đang đăng nhập vào request nếu cần
+        // String maNV = SecurityContextHolder.getContext().getAuthentication().getName();
+        // request.setMaNV(maNV);
+
+        HoaDonDV createdBill = hoaDonService.createHoaDonDV(request);
+        return new ResponseEntity<>(createdBill, HttpStatus.CREATED);
+    }
 }

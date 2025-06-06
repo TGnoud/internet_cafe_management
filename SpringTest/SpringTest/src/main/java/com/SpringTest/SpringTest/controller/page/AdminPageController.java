@@ -35,7 +35,16 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.List;
+import java.math.BigDecimal; // Thêm import
+import java.time.LocalDate; // Thêm import
+import java.time.LocalDateTime; // Thêm import
+import java.time.LocalTime; // Thêm import
+import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
+import com.SpringTest.SpringTest.entity.MayTinh; // Thêm import
+import com.SpringTest.SpringTest.service.LoaiMayService; // Thêm import
 @Controller
 @RequestMapping("/admin") // Tất cả các URL trong controller này sẽ bắt đầu bằng /admin
 @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')") // Bảo vệ toàn bộ controller này
@@ -69,18 +78,71 @@ public class AdminPageController {
     private UuDaiService uuDaiService;
     private RedirectAttributes redirectAttributes;
 
+    /**
+        * Hiển thị trang quản lý máy tính với phân trang và tìm kiếm.
+     */
+    @GetMapping("/manage-computers")
+    public String manageComputersPage(Model model,
+                                      @RequestParam("page") Optional<Integer> page,
+                                      @RequestParam("size") Optional<Integer> size,
+                                      @RequestParam("keyword") Optional<String> keyword) {
+        int currentPage = page.orElse(1);
+        int pageSize = size.orElse(5);
+        String searchKeyword = keyword.orElse("");
+
+        // PageRequest.of(page, size) với page index bắt đầu từ 0
+        Page<MayTinh> computerPage = mayTinhService.findPaginated(
+                PageRequest.of(currentPage - 1, pageSize),
+                searchKeyword
+        );
+
+        model.addAttribute("computerPage", computerPage);
+        model.addAttribute("keyword", searchKeyword);
+
+        int totalPages = computerPage.getTotalPages();
+        if (totalPages > 0) {
+            List<Integer> pageNumbers = IntStream.rangeClosed(1, totalPages)
+                    .boxed()
+                    .collect(Collectors.toList());
+            model.addAttribute("pageNumbers", pageNumbers);
+        }
+
+        return "admin/manage-computers.html";
+    }
+
+    /**
+     * Hiển thị form để thêm mới hoặc chỉnh sửa máy tính.
+     */
+    @GetMapping({"/computer-form", "/computer-form/{id}"})
+    public String computerForm(@PathVariable(required = false) String id, Model model) {
+        MayTinh mayTinh = (id != null) ? mayTinhService.getMayTinhById(id) : new MayTinh();
+        List<LoaiMay> loaiMayList = loaiMayService.getAllLoaiMay(); // Lấy danh sách loại máy
+
+        model.addAttribute("mayTinh", mayTinh); // Gửi object mayTinh tới form
+        model.addAttribute("loaiMayList", loaiMayList); // Gửi danh sách loại máy để đổ vào dropdown
+
+        return "admin/computer-management.html"; // Tên file form của bạn
+    }
 
     @GetMapping("/dashboard")
-    public String showAdminDashboard(Model model) {
-        try {
-            model.addAttribute("soLuongMayTinh", mayTinhService.getAllMayTinh().size());
-            model.addAttribute("soLuongTaiKhoan", taiKhoanService.countAllActiveAccounts()); // Cần hàm này
-            model.addAttribute("soLuongDichVu", dichVuService.getAllDichVu().size());
-            model.addAttribute("soPhienDangHoatDong", phienSuDungService.getActiveSessions().size());
-        } catch (Exception e) {
-            // Xử lý lỗi nếu không lấy được dữ liệu, ví dụ:
-            model.addAttribute("dashboardError", "Không thể tải dữ liệu tổng quan: " + e.getMessage());
-        }
+    public String adminDashboard(Model model) {
+        // 1. Lấy tổng số máy
+        long totalComputers = mayTinhService.countAllMayTinh(); // Cần thêm method này vào service
+        model.addAttribute("totalComputers", totalComputers);
+
+        // 2. Lấy số máy đang hoạt động
+        long activeComputers = mayTinhService.countMayTinhByTrangThai("Đang sử dụng"); // Cần thêm method này vào service
+        model.addAttribute("activeComputers", activeComputers);
+
+        // 3. Lấy tổng doanh thu trong ngày
+        BigDecimal totalRevenueToday = phienSuDungService.getTotalRevenueToday(); // Cần thêm method này vào service
+        model.addAttribute("totalRevenueToday", totalRevenueToday);
+
+        // 4. Lấy số tài khoản mới trong ngày
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        long newAccountsToday = taiKhoanService.countNewAccountsSince(startOfDay); // Cần thêm method này vào service
+        model.addAttribute("newAccountsToday", newAccountsToday);
+
         return "admin/admin-dashboard";
     }
 

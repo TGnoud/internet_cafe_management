@@ -13,4 +13,5 @@ public interface MayTinhRepository extends JpaRepository<MayTinh, String> {
     List<MayTinh> findByLoaiMay_MaLoaiMay(String maLoaiMay);
     @Query(value = "SELECT KiemTraTrangThaiMayTinh(:maMay)", nativeQuery = true)
     String getKiemTraTrangThaiMayTinh(@Param("maMay") Integer maMay);
+    long countByTrangThai(String trangThai);
 }

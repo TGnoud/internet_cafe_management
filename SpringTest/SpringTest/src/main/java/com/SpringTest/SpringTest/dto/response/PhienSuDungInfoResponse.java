@@ -17,8 +17,5 @@ public class PhienSuDungInfoResponse {
     private LocalDateTime thoiGianKetThuc; // Thêm trường này
     private BigDecimal tongTienPhien; // Có thể thêm nếu muốn hiển thị tiền của phiên đó
 
-    public BigDecimal getTongTienPhien() {
-        return tongTienPhien;
-    }
 
 }
