@@ -1,5 +1,4 @@
 
-
 -- Dữ liệu cho bảng DichVu
 INSERT INTO `DichVu` (`MaDV`, `TenDV`, `DonGia`, `TrangThaiDichVu`) VALUES
 ('DV001', 'Nạp 10K', 10000.00, 'Còn hàng'),
@@ -38,3 +37,8 @@ INSERT INTO `DichVu` (`MaDV`, `TenDV`, `DonGia`, `TrangThaiDichVu`) VALUES
 ('DV032', 'Khăn Lạnh Hương Chanh', 25000.00, 'Hết hàng'),
 ('DV033', 'Sinh Tố Xoài Cát', 12000.00, 'Còn hàng');
 
+-- Thêm cột LoaiDichVu với giá trị mặc định là 'MUA_HANG'
+ALTER TABLE DichVu ADD COLUMN LoaiDichVu VARCHAR(10) NOT NULL DEFAULT 'MUA_HANG';
+
+-- Cập nhật 3 dịch vụ nạp tiền của bạn sang loại 'NAP_TIEN'
+UPDATE DichVu SET LoaiDichVu = 'NAP_TIEN' WHERE MaDV IN ('DV001', 'DV002', 'DV003');

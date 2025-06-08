@@ -11,12 +11,18 @@ CREATE ROLE IF NOT EXISTS 'nhan_vien_co_ban_role'@'%';
 CREATE ROLE IF NOT EXISTS 'quan_ly_cua_hang_role'@'%';
 CREATE ROLE IF NOT EXISTS 'quan_tri_vien_db_role'@'%';
 
+
 -- -----------------------------------------------------
 -- CẤP QUYỀN CHO ROLE: khach_hang_role
 -- -----------------------------------------------------
 -- Quyền SELECT trên các View dành cho Khách hàng
 GRANT SELECT ON quan_ly_quan_net.View_kh_danhsachdichvu TO 'khach_hang_role'@'%';
 GRANT SELECT ON quan_ly_quan_net.View_kh_danhsachmayvatrangthai TO 'khach_hang_role'@'%';
+GRANT SELECT ON quan_ly_quan_net.View_KH_ThongTinCaNhan TO 'khach_hang_role'@'%';
+
+## procedure for customer
+GRANT EXECUTE ON PROCEDURE quan_ly_quan_net.sp_KhachHang_GiaoDich TO 'khach_hang_role'@'%';
+GRANT EXECUTE ON PROCEDURE quan_ly_quan_net.sp_xem_thong_tin_ca_nhan TO 'khach_hang_role'@'%';
 
 
 -- -----------------------------------------------------
@@ -33,6 +39,7 @@ GRANT SELECT ON quan_ly_quan_net.View_NV_lichsumuadichvu TO 'nhan_vien_co_ban_ro
 GRANT SELECT ON quan_ly_quan_net.View_NV_PhienDangHoatDongChiTiet TO 'nhan_vien_co_ban_role'@'%';
 GRANT SELECT ON quan_ly_quan_net.View_NV_LichLamViecNhanVien TO 'nhan_vien_co_ban_role'@'%';
 GRANT SELECT ON quan_ly_quan_net.View_KH_DanhSachMayVaTrangThai TO 'nhan_vien_co_ban_role'@'%'; -- Nhân viên có thể cần xem view này
+GRANT EXECUTE ON PROCEDURE quan_ly_quan_net.sp_NhanVien_NapTien TO 'nhan_vien_co_ban_role'@'%';
 
 -- Quyền SELECT trên các bảng cần thiết để tra cứu thông tin
 GRANT SELECT ON quan_ly_quan_net.KhachHang TO 'nhan_vien_co_ban_role'@'%';
@@ -60,6 +67,7 @@ GRANT UPDATE (ThoiGianKetThuc) ON quan_ly_quan_net.PhienSuDung TO 'nhan_vien_co_
 GRANT UPDATE (SoTienConLai) ON quan_ly_quan_net.TaiKhoan TO 'nhan_vien_co_ban_role'@'%'; -- Nạp tiền cho khách (LƯU Ý: Nên được thực hiện qua Stored Procedure đã kiểm soát)
 GRANT UPDATE (TrangThai) ON quan_ly_quan_net.MayTinh TO 'nhan_vien_co_ban_role'@'%'; -- Ví dụ: chuyển sang 'Bảo trì' thủ công
 
+GRANT EXECUTE ON PROCEDURE quan_ly_quan_net.sp_LayThongTinCaNhan TO 'khach_hang_role'@'%';
 
 -- -----------------------------------------------------
 -- CẤP QUYỀN CHO ROLE: quan_ly_cua_hang_role
@@ -113,33 +121,58 @@ FLUSH PRIVILEGES;
 -- 1. Tạo người dùng (database user) cho từng nhân viên, quản lý, quản trị viên:
 --    CREATE USER 'tên_user'@'host' IDENTIFIED BY 'mật_khẩu';
 --    Ví dụ:
-    CREATE USER 'kh_an'@'%' IDENTIFIED BY 'MatKhauCuakh123!';
-    CREATE USER 'nv_an'@'%' IDENTIFIED BY 'MatKhauCuaAn123!';
-    CREATE USER 'ql_binh'@'%' IDENTIFIED BY 'MatKhauCuaBinh456!';
-    CREATE USER 'admin_db_qln'@'localhost' IDENTIFIED BY 'MatKhauAdminDB789!';
+    CREATE USER IF NOT EXISTS 'user_an01'@'%' IDENTIFIED BY 'pass001';
 
--- 2. Gán role đã tạo cho người dùng tương ứng:
-    GRANT 'khach_hang_role' TO 'kh_an'@'%';
-    GRANT 'nhan_vien_co_ban_role' TO 'nv_an'@'%';
-    GRANT 'quan_ly_cua_hang_role' TO 'ql_binh'@'%';
-    GRANT 'quan_tri_vien_db_role' TO 'admin_db_qln'@'localhost';
+-- Ví dụ cho nhân viên (lấy từ bảng TaiKhoanNhanVien)
+CREATE USER IF NOT EXISTS 'nhanvien_binh_002'@'%' IDENTIFIED BY 'pass_nv002';
 
--- 3. (Tùy chọn) Đặt role mặc định cho người dùng để họ không cần SET ROLE mỗi khi đăng nhập:
-    SET DEFAULT ROLE 'khach_hang_role' TO 'kh_an'@'%';
-    SET DEFAULT ROLE 'nhan_vien_co_ban_role' TO 'nv_an'@'%';
-    SET DEFAULT ROLE 'quan_ly_cua_hang_role' TO 'ql_binh'@'%';
-    SET DEFAULT ROLE 'quan_tri_vien_db_role' TO 'admin_db_qln'@'localhost';
+-- Ví dụ cho quản lý (lấy từ bảng TaiKhoanNhanVien)
+CREATE USER IF NOT EXISTS 'quanly_an_001'@'%' IDENTIFIED BY 'pass_nv001';
+
+-- Ví dụ cho quản trị CSDL
+CREATE USER IF NOT EXISTS 'admin_db_qln'@'localhost' IDENTIFIED BY 'MatKhauAdminDB789!';
 
 
+-- 2. Gán role đã tạo cho người dùng tương ứng
+-- -----------------------------------------------------------------
+-- Gán role cho khách hàng
+GRANT 'khach_hang_role' TO 'user_an01'@'%';
 
+-- Gán role cho nhân viên (vì NV002 có MaChucVu là CV002)
+GRANT 'nhan_vien_co_ban_role' TO 'nhanvien_binh_002'@'%';
+
+-- Gán role cho quản lý (vì NV001 có MaChucVu là CV001)
+GRANT 'quan_ly_cua_hang_role' TO 'quanly_an_001'@'%';
+
+-- Gán role cho quản trị CSDL
+GRANT 'quan_tri_vien_db_role' TO 'admin_db_qln'@'localhost';
+
+
+-- 3. Đặt role mặc định cho người dùng (Rất quan trọng)
+-- -----------------------------------------------------------------
+SET DEFAULT ROLE 'khach_hang_role' TO 'user_an01'@'%';
+SET DEFAULT ROLE 'nhan_vien_co_ban_role' TO 'nhanvien_binh_002'@'%';
+SET DEFAULT ROLE 'quan_ly_cua_hang_role' TO 'quanly_an_001'@'%';
+SET DEFAULT ROLE 'quan_tri_vien_db_role' TO 'admin_db_qln'@'localhost';
+
+-- Áp dụng thay đổi quyền
+FLUSH PRIVILEGES;
+
+
+-- 4. Kiểm tra lại quyền hạn của các user vừa tạo
+-- -----------------------------------------------------------------
+-- Xem quyền của user quản trị CSDL
 SHOW GRANTS FOR 'admin_db_qln'@'localhost';
-SHOW GRANTS FOR 'ql_binh'@'%';
-SHOW GRANTS FOR 'nv_an'@'%'; 
 
-show grants for 'kh_an'@'%';
+-- Xem quyền của user quản lý
+SHOW GRANTS FOR 'quanly_an_001'@'%';
 
-show grants for 'khach_hang_role';
+-- Xem quyền của user nhân viên
+SHOW GRANTS FOR 'nhanvien_binh_002'@'%';
 
+-- Xem quyền của user khách hàng
+SHOW GRANTS FOR 'user_an01'@'%';
+
+-- Xem danh sách tất cả các user trong hệ thống MySQL
 SELECT user, host FROM mysql.user;
-
 

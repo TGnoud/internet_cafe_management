@@ -26,23 +26,23 @@ LEFT JOIN
     TaiKhoan tk_active ON psd_active.MaTK = tk_active.MaTK;
 
 -- 2. View_KH_ThongTinKhachHangCoBan
-CREATE VIEW View_KH_ThongTinKhachHangCoBan AS
+
+CREATE OR REPLACE
+    SQL SECURITY DEFINER
+VIEW View_KH_ThongTinCaNhan AS
 SELECT
-    kh.MaKH,
-    kh.HoTen,
-    kh.SoDienThoai,
     tk.MaTK,
     tk.TenTK,
     tk.SoTienConLai,
-    lkh.TenLoai AS TenLoaiKhachHang
+    kh.HoTen,
+    kh.SoDienThoai
 FROM
-    KhachHang kh
+    TaiKhoan AS tk
 JOIN
-    TaiKhoan tk ON kh.MaKH = tk.MaKH
-JOIN
-    LoaiKH lkh ON kh.MaLoaiKH = lkh.MaLoaiKH;
-    
--- -----------------------------------------------------
+    KhachHang AS kh ON tk.MaKH = kh.MaKH
+WHERE
+    tk.TenTK = @ten_tk_hien_tai;
+    -- -----------------------------------------------------
 -- VIEWS CHO NHÂN VIÊN
 -- -----------------------------------------------------
 
