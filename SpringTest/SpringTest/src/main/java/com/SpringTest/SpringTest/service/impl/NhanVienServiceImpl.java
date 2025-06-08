@@ -5,6 +5,8 @@ import com.SpringTest.SpringTest.entity.NhanVien;
 import com.SpringTest.SpringTest.exception.BadRequestException;
 import com.SpringTest.SpringTest.exception.ResourceNotFoundException;
 import com.SpringTest.SpringTest.repository.ChucVuRepository;
+import com.SpringTest.SpringTest.repository.HoaDonDVRepository;
+import com.SpringTest.SpringTest.repository.NhanVienCaLamViecRepository;
 import com.SpringTest.SpringTest.repository.NhanVienRepository;
 import com.SpringTest.SpringTest.service.NhanVienService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,13 +21,21 @@ import java.util.List;
 @Service
 public class NhanVienServiceImpl implements NhanVienService {
 
-    @Autowired
-    private NhanVienRepository nhanVienRepository;
+    private final NhanVienRepository nhanVienRepository;
+    private final ChucVuRepository chucVuRepository;
+    private final HoaDonDVRepository hoaDonDVRepository;
+    private final NhanVienCaLamViecRepository nhanVienCaLamViecRepository;
 
     @Autowired
-    private ChucVuRepository chucVuRepository;
-    // Nếu nhân viên có tài khoản đăng nhập hệ thống, có thể cần TaiKhoanRepository
-    // @Autowired private TaiKhoanRepository taiKhoanRepository;
+    public NhanVienServiceImpl(NhanVienRepository nhanVienRepository,
+                               ChucVuRepository chucVuRepository,
+                               HoaDonDVRepository hoaDonDVRepository,
+                               NhanVienCaLamViecRepository nhanVienCaLamViecRepository) {
+        this.nhanVienRepository = nhanVienRepository;
+        this.chucVuRepository = chucVuRepository;
+        this.hoaDonDVRepository = hoaDonDVRepository;
+        this.nhanVienCaLamViecRepository = nhanVienCaLamViecRepository;
+    }
 
     @Override
     public Page<NhanVien> getAllNhanVien(Pageable pageable) {
@@ -86,15 +96,25 @@ public class NhanVienServiceImpl implements NhanVienService {
     }
 
     @Override
-    @Transactional // Quan trọng
+    @Transactional
     public void deleteNhanVien(String maNV) {
         NhanVien nhanVien = getNhanVienById(maNV);
-        // Kiểm tra các ràng buộc trước khi xóa, ví dụ: nhân viên có đang trong hóa đơn nào không,
-        // hoặc có tài khoản đang hoạt động không.
-        // if (hoaDonDVRepository.existsByNhanVien(nhanVien)) {
-        //    throw new BadRequestException("Không thể xóa nhân viên vì đã có trong hóa đơn.");
-        // }
-        nhanVienRepository.delete(nhanVien);
+
+        // Kiểm tra ràng buộc khóa ngoại với HoaDonDV
+        if (hoaDonDVRepository.existsByNhanVien_MaNV(maNV)) {
+            throw new BadRequestException("Không thể xóa nhân viên " + maNV + " vì đã có hóa đơn dịch vụ liên quan. Vui lòng xóa các hóa đơn trước.");
+        }
+
+        // Kiểm tra ràng buộc khóa ngoại với NhanVienCaLamViec
+        if (nhanVienCaLamViecRepository.existsById_MaNV(maNV)) {
+            throw new BadRequestException("Không thể xóa nhân viên " + maNV + " vì đã có ca làm việc liên quan. Vui lòng xóa các ca làm việc trước.");
+        }
+
+        try {
+            nhanVienRepository.delete(nhanVien);
+        } catch (Exception e) {
+            throw new BadRequestException("Lỗi khi xóa nhân viên: " + e.getMessage());
+        }
     }
     public BigDecimal getEmployeeShiftSalary(String maNV, String maCaLamViec) {
         return nhanVienRepository.calculateShiftSalary(maNV, maCaLamViec); // Gọi phương thức từ repository

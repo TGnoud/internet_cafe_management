@@ -14,7 +14,6 @@ import java.util.Optional;
 
 @Repository
 public interface TaiKhoanRepository extends JpaRepository<TaiKhoan, String> {
-    Optional<TaiKhoan> findByTenTK(String tenTK);
     Optional<TaiKhoan> findByKhachHang_MaKH(String maKH);
     long countByKhachHangIsNotNull();
     @Query(value = "SELECT TongThoiGianSuDung(:maTaiKhoan)", nativeQuery = true)
@@ -35,5 +34,9 @@ public interface TaiKhoanRepository extends JpaRepository<TaiKhoan, String> {
     @Procedure(name = "TaiKhoan.capNhatSoDu") // Tham chiếu đến tên đã định nghĩa trong @NamedStoredProcedureQuery
     void capNhatSoDuNamed(@Param("p_MaTaiKhoan") Integer maTaiKhoan, @Param("p_SoTienNap") BigDecimal soTienNap);
 
+    @Query("SELECT t FROM TaiKhoan t WHERE t.khachHang IS NOT NULL")
     Page<TaiKhoan> findByKhachHangIsNotNull(Pageable pageable);
+
+    @Query("SELECT t FROM TaiKhoan t WHERE t.tenTK = :tenTK")
+    Optional<TaiKhoan> findByTenTK(@Param("tenTK") String tenTK);
 }

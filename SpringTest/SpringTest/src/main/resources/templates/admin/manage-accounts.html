@@ -1,57 +1,190 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::mainContent})}">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <title>Quản Lý Tài Khoản Khách Hàng</title>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
+  <title>Quản Lý Tài Khoản</title>
+  <link rel="stylesheet" th:href="@{/css/admin.css}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
-<main th:fragment="mainContent">
-  <h2 class="section-title">Danh Sách Tài Khoản Khách Hàng</h2>
-  <a th:href="@{/admin/accounts/add}" class="btn-add">Thêm Tài Khoản Mới</a>
-  <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+  <div th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::content})}">
+    <title>Quản Lý Tài Khoản</title>
+    <content>
+      <div class="page-header">
+        <h2 class="page-title">Quản Lý Tài Khoản</h2>
+        <div class="action-bar">
+          <a th:href="@{/admin/accounts/add}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Thêm Tài Khoản
+          </a>
+        </div>
+      </div>
 
-  <table>
-    <thead>
-    <tr>
-      <th>Mã Tài Khoản</th>
-      <th>Tên Tài Khoản</th>
-      <th>Mã Khách Hàng</th>
-      <th>Họ Tên Khách Hàng</th>
-      <th>Số Tiền Còn Lại</th>
-      <th>Hành Động</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="tkInfo : ${taiKhoanPage != null ? taiKhoanPage.content : danhSachTaiKhoan}">
-      <td th:text="${tkInfo.maTK}">TK001</td>
-      <td th:text="${tkInfo.tenTK}">user01</td>
-      <td th:text="${tkInfo.maKH}">KH001</td>
-      <td th:text="${tkInfo.hoTenKH}">Nguyễn Văn A</td>
-      <td th:text="${#numbers.formatDecimal(tkInfo.soTienConLai, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">50,000 VNĐ</td>
-      <td class="action-buttons">
-        <a th:href="@{/admin/accounts/edit/{maTK}(maTK=${tkInfo.maTK})}" class="btn-edit">Chi Tiết/Sửa</a>
-        <a th:href="@{/admin/accounts/deposit/{maTK}(maTK=${tkInfo.maTK})}" class="btn-action">Nạp Tiền</a>
-      </td>
-    </tr>
-    <tr th:if="${(taiKhoanPage != null && #lists.isEmpty(taiKhoanPage.content)) || (#lists.isEmpty(danhSachTaiKhoan) && taiKhoanPage == null)}">
-      <td colspan="6" style="text-align: center;">Không có tài khoản nào.</td>
-    </tr>
-    </tbody>
-  </table>
+      <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+      <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
 
-  <nav th:if="${taiKhoanPage != null && taiKhoanPage.totalPages > 1}" aria-label="Page navigation">
-    <ul class="pagination">
-      <li class="page-item" th:classappend="${taiKhoanPage.first ? 'disabled' : ''}">
-        <a class="page-link" th:href="@{/admin/accounts(page=${taiKhoanPage.number - 1}, size=${taiKhoanPage.size})}">Trước</a>
-      </li>
-      <li class="page-item" th:each="i : ${#numbers.sequence(0, taiKhoanPage.totalPages - 1)}" th:classappend="${i == taiKhoanPage.number ? 'active' : ''}">
-        <a class="page-link" th:href="@{/admin/accounts(page=${i}, size=${taiKhoanPage.size})}" th:text="${i + 1}">1</a>
-      </li>
-      <li class="page-item" th:classappend="${taiKhoanPage.last ? 'disabled' : ''}">
-        <a class="page-link" th:href="@{/admin/accounts(page=${taiKhoanPage.number + 1}, size=${taiKhoanPage.size})}">Sau</a>
-      </li>
-    </ul>
-  </nav>
-</main>
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Mã Tài Khoản</th>
+                  <th>Tên Đăng Nhập</th>
+                  <th>Họ Tên</th>
+                  <th>Số Điện Thoại</th>
+                  <th>Số Tiền Còn Lại</th>
+                  <th>Loại Khách Hàng</th>
+                  <th>Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:if="${accounts == null || accounts.isEmpty()}">
+                  <td colspan="7" class="text-center">Không có dữ liệu</td>
+                </tr>
+                <tr th:each="account : ${accounts}">
+                  <td th:text="${account.maTK}"></td>
+                  <td th:text="${account.tenTK}"></td>
+                  <td th:text="${account.hoTenKH}"></td>
+                  <td th:text="${account.soDienThoai}"></td>
+                  <td th:text="${#numbers.formatDecimal(account.soTienConLai, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'"></td>
+                  <td th:text="${account.tenLoaiKH}"></td>
+                  <td>
+                    <div class="btn-group">
+                      <a th:href="@{/admin/accounts/edit/{maTK}(maTK=${account.maTK})}" 
+                         class="btn btn-sm btn-outline-primary" 
+                         title="Chỉnh sửa">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <button class="btn btn-sm btn-outline-danger" 
+                              th:data-ma-tk="${account.maTK}"
+                              onclick="deleteAccount(this)"
+                              title="Xóa">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phân trang -->
+      <div class="pagination" th:if="${totalPages > 1}">
+        <a th:if="${currentPage > 0}" 
+           th:href="@{/admin/accounts(page=${currentPage - 1})}" 
+           class="page-link">
+          <i class="fas fa-chevron-left"></i>
+        </a>
+        
+        <!-- Hiển thị các trang gần trang hiện tại -->
+        <span th:with="start=${(currentPage - 2 < 0 ? 0 : currentPage - 2)},
+                      end=${(currentPage + 2 > totalPages - 1 ? totalPages - 1 : currentPage + 2)}">
+          <!-- Hiển thị trang đầu tiên nếu không phải là trang 0 -->
+          <a th:if="${start > 0}"
+             th:href="@{/admin/accounts(page=0)}"
+             class="page-link"
+             th:text="1">
+          </a>
+          <span th:if="${start > 1}" class="page-link">...</span>
+          
+          <!-- Hiển thị các trang trong khoảng -->
+          <span th:each="i : ${#numbers.sequence(start, end)}">
+            <a th:if="${i != currentPage}"
+               th:href="@{/admin/accounts(page=${i})}"
+               class="page-link"
+               th:text="${i + 1}">
+            </a>
+            <span th:if="${i == currentPage}" 
+                  class="page-link active"
+                  th:text="${i + 1}">
+            </span>
+          </span>
+          
+          <!-- Hiển thị dấu ... nếu còn nhiều trang -->
+          <span th:if="${end < totalPages - 2}" class="page-link">...</span>
+          
+          <!-- Hiển thị trang cuối cùng nếu không phải là trang cuối -->
+          <a th:if="${end < totalPages - 1}"
+             th:href="@{/admin/accounts(page=${totalPages - 1})}"
+             class="page-link"
+             th:text="${totalPages}">
+          </a>
+        </span>
+        
+        <a th:if="${currentPage < totalPages - 1}"
+           th:href="@{/admin/accounts(page=${currentPage + 1})}"
+           class="page-link">
+          <i class="fas fa-chevron-right"></i>
+        </a>
+      </div>
+    </content>
+  </div>
+
+  <script th:inline="javascript">
+    function deleteAccount(button) {
+      const maTK = button.dataset.maTk;
+      // Debugging: Log the maTK value to console
+      console.log('Attempting to delete account with MaTK:', maTK);
+
+      if (!maTK) {
+        Swal.fire(
+          'Lỗi!',
+          'Không thể xóa tài khoản vì Mã Tài Khoản bị thiếu.',
+          'error'
+        );
+        return; // Stop execution if maTK is missing
+      }
+
+      Swal.fire({
+        title: 'Xác nhận xóa?',
+        text: "Bạn có chắc chắn muốn xóa tài khoản này?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          fetch(`/admin/accounts/delete/${maTK}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(response => {
+            if (response.ok) {
+              Swal.fire(
+                'Đã xóa!',
+                'Tài khoản đã được xóa thành công.',
+                'success'
+              ).then(() => {
+                window.location.reload();
+              });
+            } else {
+              response.text().then(errorMessage => {
+                Swal.fire(
+                  'Lỗi!',
+                  errorMessage || 'Có lỗi xảy ra khi xóa tài khoản.',
+                  'error'
+                );
+              });
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            Swal.fire(
+              'Lỗi!',
+              'Có lỗi xảy ra khi xóa tài khoản.',
+              'error'
+            );
+          });
+        }
+      });
+    }
+  </script>
 </body>
 </html>

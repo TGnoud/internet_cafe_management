@@ -20,4 +20,5 @@ public interface NhanVienCaLamViecRepository extends JpaRepository<NhanVienCaLam
     List<NhanVienCaLamViec> findById_MaCaLamViec(String maCaLamViec);
     @Query(value = "SELECT fn_TinhTienCongMotCaLamViec(:maNV, :maCaLamViec)", nativeQuery = true)
     BigDecimal calculateShiftSalary(@Param("maNV") String maNV, @Param("maCaLamViec") String maCaLamViec);
+    boolean existsById_MaNV(String maNV);
 }

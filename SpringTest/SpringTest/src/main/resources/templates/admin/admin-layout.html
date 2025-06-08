@@ -2,7 +2,13 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
   <meta charset="UTF-8">
-  <title th:replace="${pageTitle}">Trang Quản Trị</title> <link rel="stylesheet" th:href="@{/css/styles.css}">
+  <title th:replace="${title}">Admin Layout</title>
+  <link rel="stylesheet" th:href="@{/css/styles.css}">
+  <link rel="stylesheet" th:href="@{/css/admin.css}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: Arial, sans-serif; margin: 0; background-color: #f4f7f6; display: flex; flex-direction: column; min-height: 100vh; }
     .admin-header { background-color: #2c3e50; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
@@ -29,51 +35,68 @@
     .logout-button { background-color: #e74c3c; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; }
     .logout-button:hover { background-color: #c0392b; }
   </style>
-  <head>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <link rel="stylesheet" th:href="@{/js/css/admin-styles.css}">
-
-  </head>
 </head>
 <body>
+  <div th:fragment="layout(title, content)">
 <header class="admin-header">
-  <h1><a th:href="@{/admin/dashboard}" style="color:white; text-decoration:none;">Quản Trị Quán Net</a></h1>
-  <nav class="admin-nav">
-    <ul>
-      <li><span style="color: #bdc3c7; padding: 10px 15px;" th:text="${#authentication != null ? #authentication.name : 'Khách'}"></span></li>
-      <li>
-        <form id="logoutPerformForm" th:action="@{/logout_perform}" method="post" style="display: inline;">
-          <button type="submit" class="logout-button">Đăng xuất</button>
-        </form>
-      </li>
-    </ul>
-  </nav>
+      <div class="header-content">
+        <a href="/admin/dashboard" class="logo">
+          <i class="fas fa-laptop"></i> Internet Cafe
+        </a>
+        <nav>
+          <ul class="nav-menu">
+            <li class="nav-item">
+              <a th:href="@{/admin/dashboard}" class="nav-link" th:classappend="${activePage == 'dashboard'} ? 'active'">
+                <i class="fas fa-chart-line"></i> Tổng Quan
+              </a>
+            </li>
+            <li class="nav-item">
+              <a th:href="@{/admin/computers}" class="nav-link" th:classappend="${activePage == 'computers'} ? 'active'">
+                <i class="fas fa-desktop"></i> Quản Lý Máy Tính
+              </a>
+            </li>
+            <li class="nav-item">
+              <a th:href="@{/admin/services}" class="nav-link" th:classappend="${activePage == 'services'} ? 'active'">
+                <i class="fas fa-concierge-bell"></i> Quản Lý Dịch Vụ
+              </a>
+            </li>
+            <li class="nav-item">
+              <a th:href="@{/admin/accounts}" class="nav-link" th:classappend="${activePage == 'accounts'} ? 'active'">
+                <i class="fas fa-users"></i> Quản Lý Tài Khoản
+              </a>
+            </li>
+            <li class="nav-item">
+              <a th:href="@{/admin/sessions}" class="nav-link" th:classappend="${activePage == 'sessions'} ? 'active'">
+                <i class="fas fa-clock"></i> Phiên Sử Dụng
+              </a>
+            </li>
+            <li class="nav-item">
+              <a th:href="@{/admin/employees}" class="nav-link" th:classappend="${activePage == 'employees'} ? 'active'">
+                <i class="fas fa-user-tie"></i> Quản Lý Nhân Viên
+              </a>
+            </li>
+            <li class="nav-item">
+              <a th:href="@{/admin/promotions}" class="nav-link" th:classappend="${activePage == 'promotions'} ? 'active'">
+                <i class="fas fa-gift"></i> Quản Lý Ưu Đãi
+              </a>
+            </li>
+            <li class="nav-item">
+              <a th:href="@{/logout}" class="nav-link">
+                <i class="fas fa-sign-out-alt"></i> Đăng Xuất
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
 </header>
 
-<div class="admin-main-container">
-  <aside class="sidebar">
-    <ul>
-      <li><a th:href="@{/admin/dashboard}" th:classappend="${#httpServletRequest.requestURI.startsWith('/admin/dashboard') ? 'active' : ''}">Tổng Quan</a></li>
-      <li><a th:href="@{/admin/computers}" th:classappend="${#httpServletRequest.requestURI.startsWith('/admin/computers') ? 'active' : ''}">Quản Lý Máy Tính</a></li>
-      <li><a th:href="@{/admin/services}" th:classappend="${#httpServletRequest.requestURI.startsWith('/admin/services') ? 'active' : ''}">Quản Lý Dịch Vụ</a></li>
-      <li><a th:href="@{/admin/accounts}" th:classappend="${#httpServletRequest.requestURI.startsWith('/admin/accounts') ? 'active' : ''}">Quản Lý Tài Khoản</a></li>
-      <li><a th:href="@{/admin/sessions}" th:classappend="${#httpServletRequest.requestURI.startsWith('/admin/sessions') ? 'active' : ''}">Phiên Sử Dụng</a></li>
-      <li><a th:href="@{/admin/employees}" th:classappend="${#httpServletRequest.requestURI.startsWith('/admin/employees') ? 'active' : ''}">Quản Lý Nhân Viên</a></li>
-      <li><a th:href="@{/admin/promotions}" th:classappend="${#httpServletRequest.requestURI.startsWith('/admin/promotions') ? 'active' : ''}">Quản Lý Ưu Đãi</a></li>
-    </ul>
-  </aside>
-  <div class="admin-content">
-    <div th:replace="${mainContent}">
-      <p>Nội dung mặc định nếu không có gì được truyền vào.</p>
+    <main class="main-content">
+      <div th:replace="${content}">
+        <!-- Content will be inserted here -->
     </div>
+    </main>
   </div>
-</div>
-<script>
-  // Add active class to current nav link based on URL (basic example)
-  // More robust solution in Thymeleaf is preferred like above with th:classappend
-</script>
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </body>
 </html>

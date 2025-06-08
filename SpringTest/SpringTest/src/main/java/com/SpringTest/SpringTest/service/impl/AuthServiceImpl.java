@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -55,8 +56,11 @@ public class AuthServiceImpl implements AuthService {
 
         if (!"Khả dụng".equalsIgnoreCase(mayTinh.getTrangThai())) {
             // Kiểm tra xem có phải chính tài khoản này đang sử dụng máy không (trường hợp re-login/mở khóa)
-            PhienSuDung existingSession = phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh)
-                    .orElse(null);
+            PhienSuDung existingSession = null;
+            List<PhienSuDung> sessions = phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh);
+            if (!sessions.isEmpty()) {
+                existingSession = sessions.get(0);
+            }
             if (existingSession == null || !existingSession.getTaiKhoan().getMaTK().equals(taiKhoan.getMaTK())) {
                 throw new BadRequestException("Máy " + mayTinh.getTenMay() + " hiện không khả dụng hoặc đang được người khác sử dụng.");
             }

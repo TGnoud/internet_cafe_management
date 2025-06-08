@@ -12,7 +12,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "CT_HoaDonDV")
+@Table(name = "ct_hoadondv")
 public class ChiTietHoaDonDV {
 
     @EmbeddedId

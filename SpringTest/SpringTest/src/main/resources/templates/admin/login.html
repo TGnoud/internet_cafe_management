@@ -16,7 +16,7 @@
 </head>
 <body>
 <div class="login-container">
-  <form th:action="@{/login_perform}" method="post" class="login-form">
+  <form th:action="@{/login}" method="post" class="login-form">
     <h2>Đăng nhập</h2>
     <div th:if="${param.error}" class="error-message">
       Tên đăng nhập hoặc mật khẩu không đúng.
@@ -31,9 +31,6 @@
     </div>
     <button type="submit" class="btn btn-primary">Đăng nhập</button>
   </form>
-    <div class="register-link">
-        <p>Chưa có tài khoản? <a th:href="@{/register}">Đăng ký ngay</a></p>
-</div>
 <script th:src="@{/js/login-page.js}"></script>
 </div>
 </body>

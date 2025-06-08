@@ -68,12 +68,12 @@ public class UuDaiServiceImpl implements UuDaiService {
 
     @Override
     public List<UuDai> findAll() {
-        return List.of();
+        return uuDaiRepository.findAll();
     }
 
     @Override
     public UuDai save(UuDai uuDai) {
-        return null;
+        return uuDaiRepository.save(uuDai);
     }
 
 }

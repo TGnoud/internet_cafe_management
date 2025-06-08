@@ -8,6 +8,7 @@ import java.util.List;
 
 public interface MayTinhService {
     List<MayTinh> getAllMayTinh();
+    List<MayTinh> getAllMayTinhList();
     MayTinh getMayTinhById(String maMay);
     MayTinh updateTrangThaiMay(String maMay, String trangThaiMoi);
     MayTinh addMayTinh(MayTinh mayTinh); // Cho Manager
@@ -19,4 +20,8 @@ public interface MayTinhService {
     long countMayTinhByTrangThai(String đangSửDụng);
 
     Page<MayTinh> findPaginated(PageRequest of, String searchKeyword);
+
+    long count();
+
+    List<MayTinh> getAvailableComputers();
 }

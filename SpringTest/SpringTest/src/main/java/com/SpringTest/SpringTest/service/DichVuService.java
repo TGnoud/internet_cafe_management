@@ -16,4 +16,5 @@ public interface DichVuService {
     List<DichVuDTO> getAllDichVu();
     void deleteDichVu(String maDV); // Cân nhắc soft delete
     List<DichVuDTO> findAvailableDichVu();
+    long count();
 }

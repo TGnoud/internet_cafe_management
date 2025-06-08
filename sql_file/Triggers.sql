@@ -100,7 +100,7 @@ DELIMITER ;
 
 
 -- 4. Trigger tự động trừ tiền dịch vụ khi tạo hóa đơn dịch vụ mới
-drop trigger trg_After_CT_HoaDonDV_Insert_DeductItemCost;
+drop trigger if exists trg_After_CT_HoaDonDV_Insert_DeductItemCost;
 
 DELIMITER $$
 

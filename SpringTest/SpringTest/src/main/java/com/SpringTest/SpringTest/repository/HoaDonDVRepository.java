@@ -26,4 +26,6 @@ public interface HoaDonDVRepository extends JpaRepository<HoaDonDV, String> {
     Object getHoaDonWithTongTienDichVu(@Param("maHoaDon") Integer maHoaDon);// Kiểu trả về có thể là Object[] hoặc một DTO projection
     @Query(value = "SELECT TinhTongChiPhiHoaDonDV(:maHD, :apDungUuDai)", nativeQuery = true)
     BigDecimal calculateServiceBillCost(@Param("maHD") String maHD, @Param("apDungUuDai") boolean apDungUuDai);
+    boolean existsByTaiKhoan_MaTK(String maTK);
+    boolean existsByNhanVien_MaNV(String maNV);
 }

@@ -9,7 +9,6 @@ import org.springframework.security.config.annotation.authentication.builders.Au
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -23,16 +22,11 @@ public class SecurityConfig {
     @Autowired
     private TaiKhoanUserDetailsService taiKhoanUserDetailsService; // Service để load user từ DB
 
-//    @Bean
-//    public static PasswordEncoder passwordEncoder() {
-//        return new BCryptPasswordEncoder();
-//    }
     @Bean
     public static PasswordEncoder passwordEncoder() {
-        // Lưu ý: NoOpPasswordEncoder đã bị đánh dấu là "deprecated" (không dùng nữa)
-        // vì nó không an toàn.
-        return (NoOpPasswordEncoder) NoOpPasswordEncoder.getInstance();
+        return NoOpPasswordEncoder.getInstance();
     }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
@@ -40,7 +34,7 @@ public class SecurityConfig {
                         // Cho phép tất cả mọi người truy cập vào các URL này
                         .requestMatchers("/", "/login", "/logout", "/css/**", "/js/**", "/images/**").permitAll()
                         // Yêu cầu quyền 'ADMIN' cho các trang quản lý
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/admin/**").hasAnyRole("ADMIN", "MANAGER")
                         // Yêu cầu quyền 'EMPLOYEE' cho các trang nhân viên
                         .requestMatchers("/employee/**").hasRole("EMPLOYEE")
                         // Yêu cầu quyền 'MANAGER' cho các trang quản lý cấp cao

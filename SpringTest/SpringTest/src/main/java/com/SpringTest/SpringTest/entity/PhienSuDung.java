@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "PhienSuDung")
+@Table(name = "phiensudung")
 public class PhienSuDung {
 
     @Id
@@ -33,7 +33,4 @@ public class PhienSuDung {
 
     @Column(name = "ThoiGianKetThuc")
     private LocalDateTime thoiGianKetThuc;
-
-    @Column(name = "TongTien")
-    private BigDecimal tongTien;
 }

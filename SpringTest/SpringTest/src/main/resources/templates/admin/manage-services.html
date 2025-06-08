@@ -1,58 +1,190 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::mainContent})}">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
+  <meta charset="UTF-8">
   <title>Quản Lý Dịch Vụ</title>
-  <meta charset="utf-8">
+  <link rel="stylesheet" th:href="@{/css/admin.css}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
-<main th:fragment="mainContent">
-  <h2 class="section-title">Danh Sách Dịch Vụ</h2>
-  <a th:href="@{/admin/services/add}" class="btn-add">Thêm Dịch Vụ Mới</a>
+  <div th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::content})}">
+    <title>Quản Lý Dịch Vụ</title>
+    <content>
+      <div class="page-header">
+        <h2 class="page-title">Quản Lý Dịch Vụ</h2>
+        <div class="action-bar">
+          <a th:href="@{/admin/services/add}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Thêm Dịch Vụ
+          </a>
+        </div>
+      </div>
 
-  <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
-  <div th:if="${errorMessage}" class="alert alert-danger" th:text="${errorMessage}"></div>
+      <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+      <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
 
-  <table>
-    <thead>
-    <tr>
-      <th>Mã Dịch Vụ</th>
-      <th>Tên Dịch Vụ</th>
-      <th>Đơn Giá</th>
-      <th>Trạng Thái</th>
-      <th>Hành Động</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="dichVu : ${danhSachDichVu}">
-      <td th:text="${dichVu.maDV}">DV001</td>
-      <td th:text="${dichVu.tenDV}">Nước ngọt</td>
-      <td th:text="${#numbers.formatDecimal(dichVu.donGia, 0, 'COMMA', 0, 'POINT')} + ' VNĐ'">10,000 VNĐ</td>
-      <td th:text="${dichVu.trangThaiDichVu}">Còn hàng</td>
-      <td class="action-buttons">
-        <a th:href="@{/admin/services/edit/{maDV}(maDV=${dichVu.maDV})}" class="btn-edit">Sửa</a>
-        <button class="btn-delete" th:attr="onclick=|confirmDelete('/api/employee/services/' + '${dichVu.maDV}', 'dịch vụ')|">Xóa</button>
-      </td>
-    </tr>
-    <tr th:if="${#lists.isEmpty(danhSachDichVu)}">
-      <td colspan="5" style="text-align: center;">Không có dịch vụ nào.</td>
-    </tr>
-    </tbody>
-  </table>
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Mã Dịch Vụ</th>
+                  <th>Tên Dịch Vụ</th>
+                  <th>Đơn Giá</th>
+                  <th>Trạng Thái</th>
+                  <th>Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:if="${danhSachDichVu == null || danhSachDichVu.isEmpty()}">
+                  <td colspan="5" class="text-center">Không có dữ liệu</td>
+                </tr>
+                <tr th:each="dichVu : ${danhSachDichVu}">
+                  <td th:text="${dichVu.maDV}"></td>
+                  <td th:text="${dichVu.tenDV}"></td>
+                  <td th:text="${#numbers.formatDecimal(dichVu.donGia, 0, 'COMMA', 0, 'POINT') + ' VNĐ'}"></td>
+                  <td>
+                    <span th:class="${dichVu.trangThaiDichVu == 'Còn hàng' ? 'status-available' : 'status-unavailable'}"
+                          th:text="${dichVu.trangThaiDichVu}">
+                    </span>
+                  </td>
+                  <td>
+                    <div class="btn-group">
+                      <a th:href="@{/admin/services/edit/{maDV}(maDV=${dichVu.maDV})}" 
+                         class="btn btn-sm btn-outline-primary" 
+                         title="Chỉnh sửa">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <button class="btn btn-sm btn-outline-danger" 
+                              th:data-ma-dv="${dichVu.maDV}"
+                              onclick="deleteService(this)"
+                              title="Xóa">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
-  <nav th:if="${dichVuPage != null && dichVuPage.totalPages > 1}" aria-label="Page navigation">
-    <ul class="pagination">
-      <li class="page-item" th:classappend="${dichVuPage.first ? 'disabled' : ''}">
-        <a class="page-link" th:href="@{/admin/services(page=${dichVuPage.number - 1}, size=${dichVuPage.size})}">Trước</a>
-      </li>
-      <li class="page-item" th:each="i : ${#numbers.sequence(0, dichVuPage.totalPages - 1)}" th:classappend="${i == dichVuPage.number ? 'active' : ''}">
-        <a class="page-link" th:href="@{/admin/services(page=${i}, size=${dichVuPage.size})}" th:text="${i + 1}">1</a>
-      </li>
-      <li class="page-item" th:classappend="${dichVuPage.last ? 'disabled' : ''}">
-        <a class="page-link" th:href="@{/admin/services(page=${dichVuPage.number + 1}, size=${dichVuPage.size})}">Sau</a>
-      </li>
-    </ul>
-  </nav>
-  <script th:src="@{/js/admin-common.js}"></script>
-</main>
+      <!-- Phân trang -->
+      <div class="pagination" th:if="${totalPages > 1}">
+        <a th:if="${currentPage > 0}" 
+           th:href="@{/admin/services(page=${currentPage - 1})}" 
+           class="page-link">
+          <i class="fas fa-chevron-left"></i>
+        </a>
+        
+        <!-- Hiển thị các trang gần trang hiện tại -->
+        <span th:with="start=${(currentPage - 2 < 0 ? 0 : currentPage - 2)},
+                      end=${(currentPage + 2 > totalPages - 1 ? totalPages - 1 : currentPage + 2)}">
+          <!-- Hiển thị trang đầu tiên nếu không phải là trang 0 -->
+          <a th:if="${start > 0}"
+             th:href="@{/admin/services(page=0)}"
+             class="page-link"
+             th:text="1">
+          </a>
+          <span th:if="${start > 1}" class="page-link">...</span>
+          
+          <!-- Hiển thị các trang trong khoảng -->
+          <span th:each="i : ${#numbers.sequence(start, end)}">
+            <a th:if="${i != currentPage}"
+               th:href="@{/admin/services(page=${i})}"
+               class="page-link"
+               th:text="${i + 1}">
+            </a>
+            <span th:if="${i == currentPage}" 
+                  class="page-link active"
+                  th:text="${i + 1}">
+            </span>
+          </span>
+          
+          <!-- Hiển thị dấu ... nếu còn nhiều trang -->
+          <span th:if="${end < totalPages - 2}" class="page-link">...</span>
+          
+          <!-- Hiển thị trang cuối cùng nếu không phải là trang cuối -->
+          <a th:if="${end < totalPages - 1}"
+             th:href="@{/admin/services(page=${totalPages - 1})}"
+             class="page-link"
+             th:text="${totalPages}">
+          </a>
+        </span>
+        
+        <a th:if="${currentPage < totalPages - 1}"
+           th:href="@{/admin/services(page=${currentPage + 1})}"
+           class="page-link">
+          <i class="fas fa-chevron-right"></i>
+        </a>
+      </div>
+    </content>
+  </div>
+
+  <script th:inline="javascript">
+    function deleteService(button) {
+      const maDV = button.dataset.maDv;
+      // Debugging: Log the maDV value to console
+      console.log('Attempting to delete service with MaDV:', maDV);
+
+      if (!maDV) {
+        Swal.fire(
+          'Lỗi!',
+          'Không thể xóa dịch vụ vì Mã Dịch Vụ bị thiếu.',
+          'error'
+        );
+        return; // Stop execution if maDV is missing
+      }
+
+      Swal.fire({
+        title: 'Xác nhận xóa?',
+        text: "Bạn có chắc chắn muốn xóa dịch vụ này?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          fetch(`/admin/services/delete/${maDV}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(response => {
+            if (response.ok) {
+              Swal.fire(
+                'Đã xóa!',
+                'Dịch vụ đã được xóa thành công.',
+                'success'
+              ).then(() => {
+                window.location.reload();
+              });
+            } else {
+              response.text().then(errorMessage => {
+                Swal.fire(
+                  'Lỗi!',
+                  errorMessage || 'Có lỗi xảy ra khi xóa dịch vụ.',
+                  'error'
+                );
+              });
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            Swal.fire(
+              'Lỗi!',
+              'Có lỗi xảy ra khi xóa dịch vụ.',
+              'error'
+            );
+          });
+        }
+      });
+    }
+  </script>
 </body>
 </html>

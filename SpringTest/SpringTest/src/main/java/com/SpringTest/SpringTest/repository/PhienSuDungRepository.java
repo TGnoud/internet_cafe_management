@@ -20,8 +20,8 @@ import java.util.Optional;
 public interface PhienSuDungRepository extends JpaRepository<PhienSuDung, Integer> {
     List<PhienSuDung> findByTaiKhoan(TaiKhoan taiKhoan);
     List<PhienSuDung> findByMayTinh(MayTinh mayTinh);
-    Optional<PhienSuDung> findByMayTinhAndThoiGianKetThucIsNull(MayTinh mayTinh);
-    List<PhienSuDung> findByTaiKhoan_MaTKAndThoiGianKetThucIsNull(String maTK);
+    List<PhienSuDung> findByMayTinhAndThoiGianKetThucIsNull(MayTinh mayTinh);
+    List<PhienSuDung> findByTaiKhoan_MaTK(String maTK);
     List<PhienSuDung> findByThoiGianBatDauBetween(LocalDateTime start, LocalDateTime end);
     List<PhienSuDung> findByThoiGianKetThucIsNullOrderByThoiGianBatDauDesc();
     Page<PhienSuDung> findByMayTinhOrderByThoiGianBatDauDesc(MayTinh mayTinh, Pageable pageable);
@@ -35,4 +35,14 @@ public interface PhienSuDungRepository extends JpaRepository<PhienSuDung, Intege
     BigDecimal calculateSessionCost(@Param("maPhien") Integer maPhien, @Param("apDungUuDai") boolean apDungUuDai);
     @Query(value = "SELECT GetTotalRevenueToday()", nativeQuery = true)
     BigDecimal getTotalRevenueToday();
+    List<PhienSuDung> findByTaiKhoan_MaTKAndThoiGianKetThucIsNull(String maTK);
+    @Query("SELECT COUNT(p) FROM PhienSuDung p WHERE p.thoiGianKetThuc IS NULL")
+    long countByThoiGianKetThucIsNull();
+    boolean existsByTaiKhoan_MaTK(String maTK);
+    @Query("SELECT p FROM PhienSuDung p WHERE p.mayTinh.maMay = :maMay AND p.thoiGianKetThuc IS NULL")
+    PhienSuDung findByMayTinh_MaMayAndThoiGianKetThucIsNull(@Param("maMay") String maMay);
+
+    default boolean existsByMayTinh_MaMayAndThoiGianKetThucIsNull(String maMay) {
+        return findByMayTinh_MaMayAndThoiGianKetThucIsNull(maMay) != null;
+    }
 }

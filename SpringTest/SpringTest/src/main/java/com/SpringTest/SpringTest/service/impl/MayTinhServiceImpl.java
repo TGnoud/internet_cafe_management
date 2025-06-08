@@ -32,7 +32,7 @@ public class MayTinhServiceImpl implements MayTinhService {
 
     @PersistenceContext // Injecct EntityManager
     private EntityManager entityManager;
-    private static final List<String> VALID_STATUSES = Arrays.asList("Khả dụng", "Bảo trì", "Đang sử dụng");
+    private static final List<String> VALID_STATUSES = Arrays.asList("Khả dụng", "Bảo trì");
 
     public String getActualMachineStatusFromDb(String maMay) {
         StoredProcedureQuery query = entityManager.createStoredProcedureQuery("KiemTraTrangThaiMay");
@@ -45,66 +45,29 @@ public class MayTinhServiceImpl implements MayTinhService {
         return (String) query.getOutputParameterValue("p_TrangThai");
     }
     @Override
-    public List<MayTinh> getAllMayTinh() { //
-        return mayTinhRepository.findAll(); //
+    public List<MayTinh> getAllMayTinh() {
+        return mayTinhRepository.findAll();
     }
 
     @Override
-    public MayTinh getMayTinhById(String maMay) { //
-        return mayTinhRepository.findById(maMay) //
-                .orElseThrow(() -> new ResourceNotFoundException("Máy tính không tìm thấy: " + maMay)); //
+    public List<MayTinh> getAllMayTinhList() {
+        return mayTinhRepository.findAll();
+    }
+
+    @Override
+    public MayTinh getMayTinhById(String maMay) {
+        return mayTinhRepository.findById(maMay).orElse(null);
     }
 
     @Override
     @Transactional
-    public MayTinh updateTrangThaiMay(String maMay, String trangThaiMoi) { //
-        if (!VALID_STATUSES.contains(trangThaiMoi)) { //
-            throw new BadRequestException("Trạng thái không hợp lệ: " + trangThaiMoi + //
-                    ". Các trạng thái hợp lệ: " + VALID_STATUSES); //
+    public MayTinh updateTrangThaiMay(String maMay, String trangThaiMoi) {
+        MayTinh mayTinh = getMayTinhById(maMay);
+        if (mayTinh != null) {
+            mayTinh.setTrangThai(trangThaiMoi);
+            return mayTinhRepository.save(mayTinh);
         }
-
-        MayTinh mayTinh = getMayTinhById(maMay); //
-
-        // Lấy trạng thái thực tế từ DB (bao gồm cả việc check phiên sử dụng)
-        // String actualStatusFromDb = getActualMachineStatusFromDb(maMay); // Gọi procedure
-
-        // Logic kiểm tra hiện tại của bạn đã khá tốt và trực tiếp sử dụng JPA repository.
-        // Việc dùng procedure KiemTraTrangThaiMay ở đây có thể là một lựa chọn nếu logic
-        // trong procedure phức tạp hơn hoặc bạn muốn tập trung logic kiểm tra trạng thái ở DB.
-        // Ví dụ nếu dùng procedure:
-        // if ("Đang sử dụng".equals(actualStatusFromDb)) {
-        //    if ("Khả dụng".equalsIgnoreCase(trangThaiMoi) || "Bảo trì".equalsIgnoreCase(trangThaiMoi)) {
-        //        throw new BadRequestException("Máy " + maMay + " đang được sử dụng (theo DB), không thể đặt thành '" + trangThaiMoi + "'.");
-        //    }
-        // } else if (!"Đang sử dụng".equals(actualStatusFromDb) && "Đang sử dụng".equalsIgnoreCase(trangThaiMoi)) {
-        //     // Logic này trong procedure KiemTraTrangThaiMay đã set là "Đang sử dụng" nếu có phiên.
-        //     // Việc cố gắng set thủ công sang "Đang sử dụng" khi không có phiên cần được xử lý cẩn thận.
-        //     // Logic hiện tại của bạn:
-        //     if (!phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()){
-        //         throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Đang sử dụng' thủ công. Trạng thái này được cập nhật tự động khi đăng nhập.");
-        //     }
-        // }
-
-
-        // Giữ lại logic kiểm tra hiện tại của bạn vì nó rõ ràng và sử dụng JPA trực tiếp:
-        if ("Khả dụng".equalsIgnoreCase(trangThaiMoi) && //
-                phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()) { //
-            throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Khả dụng' khi đang có phiên sử dụng."); //
-        }
-
-        if ("Bảo trì".equalsIgnoreCase(trangThaiMoi) && //
-                phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()) { //
-            throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Bảo trì' khi đang có phiên sử dụng."); //
-        }
-
-        if ("Đang sử dụng".equalsIgnoreCase(trangThaiMoi) && //
-                !phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()) { //
-            throw new BadRequestException("Không thể đặt máy " + maMay + " thành 'Đang sử dụng' thủ công. Trạng thái này được cập nhật tự động khi đăng nhập."); //
-        }
-
-
-        mayTinh.setTrangThai(trangThaiMoi); //
-        return mayTinhRepository.save(mayTinh); //
+        return null;
     }
 
     @Override
@@ -127,11 +90,19 @@ public class MayTinhServiceImpl implements MayTinhService {
     @Transactional
     public void deleteMayTinh(String maMay) {
         MayTinh mayTinh = getMayTinhById(maMay);
+        if (mayTinh == null) {
+            throw new ResourceNotFoundException("Không tìm thấy máy tính với mã: " + maMay);
+        }
         // Kiểm tra ràng buộc, ví dụ: không xóa máy đang có phiên hoạt động
-        if (phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isPresent()) {
+        if (!phienSuDungRepository.findByMayTinhAndThoiGianKetThucIsNull(mayTinh).isEmpty()) {
             throw new BadRequestException("Không thể xóa máy " + maMay + " khi đang có phiên sử dụng.");
         }
-        mayTinhRepository.delete(mayTinh);
+        try {
+            mayTinhRepository.delete(mayTinh);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new BadRequestException("Lỗi khi xóa máy tính: " + e.getMessage());
+        }
     }
     @Override
     @Transactional
@@ -162,5 +133,15 @@ public class MayTinhServiceImpl implements MayTinhService {
     @Override
     public Page<MayTinh> findPaginated(PageRequest of, String searchKeyword) {
         return null;
+    }
+
+    @Override
+    public long count() {
+        return mayTinhRepository.count();
+    }
+
+    @Override
+    public List<MayTinh> getAvailableComputers() {
+        return mayTinhRepository.findByTrangThai("Khả dụng");
     }
 }

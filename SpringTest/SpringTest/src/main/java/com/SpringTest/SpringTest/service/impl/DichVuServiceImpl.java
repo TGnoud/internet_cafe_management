@@ -161,4 +161,9 @@ public class DichVuServiceImpl implements DichVuService {
         }
         dichVuRepository.delete(dichVu);
     }
+
+    @Override
+    public long count() {
+        return dichVuRepository.count();
+    }
 }

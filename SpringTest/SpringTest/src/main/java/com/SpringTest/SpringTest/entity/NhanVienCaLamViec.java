@@ -9,7 +9,7 @@ import lombok.AllArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "NhanVien_CaLamViec")
+@Table(name = "nhanvien_calamviec")
 public class NhanVienCaLamViec {
 
     @EmbeddedId

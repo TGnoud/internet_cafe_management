@@ -13,7 +13,7 @@ import java.util.Set;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Table(name = "TaiKhoan")
+@Table(name = "taikhoan")
 public class TaiKhoan {
 
     @Id
@@ -40,10 +40,4 @@ public class TaiKhoan {
 
     @OneToMany(mappedBy = "taiKhoan", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<HoaDonDV> hoaDonDVs;
-
-    // Giả sử có thêm trường vai trò (CUSTOMER, EMPLOYEE, MANAGER) không có trong DDL nhưng cần cho logic ứng dụng
-    // @Column(name = "VaiTro", length = 20)
-    private String vaiTro;
-    @Version
-    private Long version;
 }

@@ -1,39 +1,175 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::mainContent})}">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
+  <meta charset="UTF-8">
   <title>Quản Lý Ưu Đãi</title>
-  <meta charset="utf-8">
+  <link rel="stylesheet" th:href="@{/css/admin.css}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
-<main th:fragment="mainContent">
-  <h2 class="section-title">Danh Sách Chương Trình Ưu Đãi</h2>
-  <a th:href="@{/admin/promotions/add}" class="btn-add">Thêm Ưu Đãi Mới</a>
-  <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+  <div th:replace="~{admin/admin-layout :: layout(~{::title}, ~{::content})}">
+    <title>Quản Lý Ưu Đãi</title>
+    <content>
+      <div class="page-header">
+        <h2 class="page-title">Quản Lý Ưu Đãi</h2>
+        <div class="action-bar">
+          <a th:href="@{/admin/promotions/add}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Thêm Ưu Đãi
+          </a>
+        </div>
+      </div>
 
-  <table>
-    <thead>
-    <tr>
-      <th>Mã Ưu Đãi</th>
-      <th>Nội Dung/Tên Chương Trình</th>
-      <th>Mức Ưu Đãi (%)</th>
-      <th>Hành Động</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="ud : ${danhSachUuDai}"> <td th:text="${ud.maUuDai}">UD001</td>
-      <td th:text="${ud.noiDung}">Giảm giá cuối tuần</td>
-      <td th:text="${ud.mucUuDai != null ? #numbers.formatDecimal(ud.mucUuDai, 0, 'COMMA', 2, 'POINT') + '%' : 'N/A'}">10%</td>
-      <td class="action-buttons">
-        <a th:href="@{/admin/promotions/edit/{maUuDai}(maUuDai=${ud.maUuDai})}" class="btn-edit">Sửa</a>
-        <button class="btn-delete" th:attr="onclick=|confirmDelete('/api/manager/promotions/' + '${ud.maUuDai}', 'ưu đãi')|">Xóa</button>
-      </td>
-    </tr>
-    <tr th:if="${#lists.isEmpty(danhSachUuDai)}">
-      <td colspan="4" style="text-align: center;">Không có chương trình ưu đãi nào.</td>
-    </tr>
-    </tbody>
-  </table>
-  <script th:src="@{/js/admin-common.js}"></script>
-</main>
+      <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+      <div th:if="${successMessage}" class="alert alert-success" th:text="${successMessage}"></div>
+
+      <div class="card">
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-hover">
+              <thead>
+                <tr>
+                  <th>Mã Ưu Đãi</th>
+                  <th>Nội Dung</th>
+                  <th>Mức Ưu Đãi</th>
+                  <th>Thao Tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr th:if="${promotionPage.content == null || promotionPage.content.isEmpty()}">
+                  <td colspan="4" class="text-center">Không có dữ liệu</td>
+                </tr>
+                <tr th:each="uuDai : ${promotionPage.content}">
+                  <td th:text="${uuDai.maUuDai}"></td>
+                  <td th:text="${uuDai.noiDung}"></td>
+                  <td th:text="${uuDai.mucUuDai + '%'}"></td>
+                  <td>
+                    <div class="btn-group">
+                      <a th:href="@{/admin/promotions/edit/{id}(id=${uuDai.maUuDai})}" 
+                         class="btn btn-sm btn-outline-primary" 
+                         title="Chỉnh sửa">
+                        <i class="fas fa-edit"></i>
+                      </a>
+                      <button class="btn btn-sm btn-outline-danger" 
+                              th:data-ma-uu-dai="${uuDai.maUuDai}"
+                              onclick="deletePromotion(this.getAttribute('data-ma-uu-dai'))"
+                              title="Xóa">
+                        <i class="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Phân trang -->
+      <div class="pagination" th:if="${promotionPage.totalPages > 1}">
+        <a th:if="${promotionPage.number > 0}" 
+           th:href="@{/admin/promotions(page=${promotionPage.number - 1})}" 
+           class="page-link">
+          <i class="fas fa-chevron-left"></i>
+        </a>
+        
+        <!-- Hiển thị các trang gần trang hiện tại -->
+        <span th:with="start=${(promotionPage.number - 2 < 0 ? 0 : promotionPage.number - 2)},
+                      end=${(promotionPage.number + 2 > promotionPage.totalPages - 1 ? promotionPage.totalPages - 1 : promotionPage.number + 2)}">
+          <!-- Hiển thị trang đầu tiên nếu không phải là trang 0 -->
+          <a th:if="${start > 0}"
+             th:href="@{/admin/promotions(page=0)}"
+             class="page-link"
+             th:text="1">
+          </a>
+          <span th:if="${start > 1}" class="page-link">...</span>
+          
+          <!-- Hiển thị các trang trong khoảng -->
+          <span th:each="i : ${#numbers.sequence(start, end)}">
+            <a th:if="${i != promotionPage.number}"
+               th:href="@{/admin/promotions(page=${i})}"
+               class="page-link"
+               th:text="${i + 1}">
+            </a>
+            <span th:if="${i == promotionPage.number}" 
+                  class="page-link active"
+                  th:text="${i + 1}">
+            </span>
+          </span>
+          
+          <!-- Hiển thị dấu ... nếu còn nhiều trang -->
+          <span th:if="${end < promotionPage.totalPages - 2}" class="page-link">...</span>
+          
+          <!-- Hiển thị trang cuối cùng nếu không phải là trang cuối -->
+          <a th:if="${end < promotionPage.totalPages - 1}"
+             th:href="@{/admin/promotions(page=${promotionPage.totalPages - 1})}"
+             class="page-link"
+             th:text="${promotionPage.totalPages}">
+          </a>
+        </span>
+        
+        <a th:if="${promotionPage.number < promotionPage.totalPages - 1}"
+           th:href="@{/admin/promotions(page=${promotionPage.number + 1})}"
+           class="page-link">
+          <i class="fas fa-chevron-right"></i>
+        </a>
+      </div>
+    </content>
+  </div>
+
+  <script th:inline="javascript">
+    function deletePromotion(maUuDai) {
+      console.log('Attempting to delete promotion with maUuDai:', maUuDai);
+      Swal.fire({
+        title: 'Xác nhận xóa?',
+        text: "Bạn có chắc chắn muốn xóa ưu đãi này?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy'
+      }).then((result) => {
+        if (result.isConfirmed) {
+          const encodedMaUuDai = encodeURIComponent(maUuDai);
+          const deleteUrl = `/admin/promotions/delete/${encodedMaUuDai}`;
+          console.log('Sending DELETE request to:', deleteUrl);
+          fetch(deleteUrl, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          })
+          .then(response => {
+            if (response.ok) {
+              Swal.fire(
+                'Đã xóa!',
+                'Ưu đãi đã được xóa thành công.',
+                'success'
+              ).then(() => {
+                window.location.reload();
+              });
+            } else {
+              response.text().then(errorMessage => {
+                Swal.fire(
+                  'Lỗi!',
+                  errorMessage || 'Có lỗi xảy ra khi xóa ưu đãi.',
+                  'error'
+                );
+              });
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            Swal.fire(
+              'Lỗi!',
+              'Có lỗi xảy ra khi xóa ưu đãi.',
+              'error'
+            );
+          });
+        }
+      });
+    }
+  </script>
 </body>
 </html>

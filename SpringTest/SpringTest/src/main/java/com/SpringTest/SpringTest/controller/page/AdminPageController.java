@@ -42,9 +42,19 @@ import java.time.LocalTime; // Thêm import
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.Map;
 
 import com.SpringTest.SpringTest.entity.MayTinh; // Thêm import
 import com.SpringTest.SpringTest.service.LoaiMayService; // Thêm import
+import com.SpringTest.SpringTest.repository.KhachHangRepository;
+import com.SpringTest.SpringTest.repository.MayTinhRepository;
+import com.SpringTest.SpringTest.repository.DichVuRepository;
+import com.SpringTest.SpringTest.repository.NhanVienRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import com.SpringTest.SpringTest.exception.BadRequestException;
+import jakarta.servlet.http.HttpSession;
+
 @Controller
 @RequestMapping("/admin") // Tất cả các URL trong controller này sẽ bắt đầu bằng /admin
 @PreAuthorize("hasRole('MANAGER') or hasRole('ADMIN')") // Bảo vệ toàn bộ controller này
@@ -78,6 +88,15 @@ public class AdminPageController {
     private UuDaiService uuDaiService;
     private RedirectAttributes redirectAttributes;
 
+    @Autowired
+    private KhachHangRepository khachHangRepository;
+    @Autowired
+    private MayTinhRepository mayTinhRepository;
+    @Autowired
+    private DichVuRepository dichVuRepository;
+    @Autowired
+    private NhanVienRepository nhanVienRepository;
+
     /**
         * Hiển thị trang quản lý máy tính với phân trang và tìm kiếm.
      */
@@ -107,6 +126,8 @@ public class AdminPageController {
             model.addAttribute("pageNumbers", pageNumbers);
         }
 
+        model.addAttribute("activePage", "computers");
+
         return "admin/manage-computers.html";
     }
 
@@ -121,39 +142,40 @@ public class AdminPageController {
         model.addAttribute("mayTinh", mayTinh); // Gửi object mayTinh tới form
         model.addAttribute("loaiMayList", loaiMayList); // Gửi danh sách loại máy để đổ vào dropdown
 
+        model.addAttribute("activePage", "computers");
+
         return "admin/computer-management.html"; // Tên file form của bạn
     }
 
     @GetMapping("/dashboard")
-    public String adminDashboard(Model model) {
-        // 1. Lấy tổng số máy
-        long totalComputers = mayTinhService.countAllMayTinh(); // Cần thêm method này vào service
-        model.addAttribute("totalComputers", totalComputers);
+    public String showDashboard(Model model) {
+        model.addAttribute("activePage", "dashboard");
+        // Lấy thông tin tổng quan
+        long soLuongMayTinh = mayTinhService.count();
+        long soLuongTaiKhoan = taiKhoanService.count();
+        long soLuongDichVu = dichVuService.count();
+        long soPhienDangHoatDong = phienSuDungService.countByThoiGianKetThucIsNull();
 
-        // 2. Lấy số máy đang hoạt động
-        long activeComputers = mayTinhService.countMayTinhByTrangThai("Đang sử dụng"); // Cần thêm method này vào service
-        model.addAttribute("activeComputers", activeComputers);
-
-        // 3. Lấy tổng doanh thu trong ngày
-        BigDecimal totalRevenueToday = phienSuDungService.getTotalRevenueToday(); // Cần thêm method này vào service
-        model.addAttribute("totalRevenueToday", totalRevenueToday);
-
-        // 4. Lấy số tài khoản mới trong ngày
-        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
-        long newAccountsToday = taiKhoanService.countNewAccountsSince(startOfDay); // Cần thêm method này vào service
-        model.addAttribute("newAccountsToday", newAccountsToday);
+        model.addAttribute("soLuongMayTinh", soLuongMayTinh);
+        model.addAttribute("soLuongTaiKhoan", soLuongTaiKhoan);
+        model.addAttribute("soLuongDichVu", soLuongDichVu);
+        model.addAttribute("soPhienDangHoatDong", soPhienDangHoatDong);
 
         return "admin/admin-dashboard";
     }
 
     // --- Quản Lý Máy Tính ---
     @GetMapping("/computers")
-    public String showManageComputersPage(Model model, @PageableDefault(size = 10) Pageable pageable) {
-        // Giả sử MayTinhService có phương thức hỗ trợ Pageable
-        // Page<MayTinh> mayTinhPage = mayTinhService.getAllMayTinhPageable(pageable);
-        // model.addAttribute("mayTinhPage", mayTinhPage);
-        model.addAttribute("danhSachMayTinh", mayTinhService.getAllMayTinh()); // Dùng tạm nếu chưa có phân trang service
-        return "admin/manage-computers";
+    public String showManageComputersPage(Model model) {
+        try {
+            List<MayTinh> mayTinhList = mayTinhService.getAllMayTinhList();
+            model.addAttribute("mayTinhList", mayTinhList);
+            return "admin/manage-computers";
+        } catch (Exception e) {
+            e.printStackTrace();
+            model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách máy tính");
+            return "admin/manage-computers";
+        }
     }
 
     // Form thêm máy tính (GET)
@@ -162,6 +184,7 @@ public class AdminPageController {
         model.addAttribute("computerForm", new MayTinh()); // Hoặc MayTinhFormDTO
         model.addAttribute("danhSachLoaiMay", loaiMayService.getAllLoaiMay()); // Cần LoaiMayService
         model.addAttribute("isEditMode", false);
+        model.addAttribute("activePage", "computers");
         return "admin/computer-form";
     }
     @PostMapping("/computers/save")
@@ -170,6 +193,7 @@ public class AdminPageController {
         if (bindingResult.hasErrors()) {
             model.addAttribute("danhSachLoaiMay", loaiMayService.getAllLoaiMay());
             model.addAttribute("isEditMode", false);
+            model.addAttribute("activePage", "computers");
             return "admin/computer-form";
         }
         try {
@@ -183,6 +207,7 @@ public class AdminPageController {
             model.addAttribute("danhSachLoaiMay", loaiMayService.getAllLoaiMay());
             model.addAttribute("isEditMode", false);
             model.addAttribute("computerForm", computerForm); // Giữ lại dữ liệu đã nhập
+            model.addAttribute("activePage", "computers");
             return "admin/computer-form";
         }
         return "redirect:/admin/computers";
@@ -197,6 +222,7 @@ public class AdminPageController {
             model.addAttribute("computerForm", mayTinh); // Hoặc formDTO
             model.addAttribute("danhSachLoaiMay", loaiMayService.getAllLoaiMay());
             model.addAttribute("isEditMode", true);
+            model.addAttribute("activePage", "computers");
         } catch (ResourceNotFoundException e) {
             model.addAttribute("errorMessage", "Không tìm thấy máy tính với mã: " + maMay);
             return "redirect:/admin/computers"; // Hoặc một trang lỗi riêng
@@ -204,23 +230,34 @@ public class AdminPageController {
         return "admin/computer-form";
     }
     @PostMapping("/computers/update")
-    public String updateComputer(@Valid @ModelAttribute("computerForm") MayTinh computerForm, // Thay MayTinh bằng MayTinhFormDTO
+    public String updateComputer(@Valid @ModelAttribute("computerForm") MayTinh computerForm,
                                  BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("danhSachLoaiMay", loaiMayService.getAllLoaiMay());
             model.addAttribute("isEditMode", true);
+            model.addAttribute("activePage", "computers");
             return "admin/computer-form";
         }
         try {
-            // MayTinh mayTinhEntity = convertToEntity(computerForm);
-            // mayTinhService.updateMayTinh(computerForm.getMaMay(), mayTinhEntity);
-            mayTinhService.updateMayTinh(computerForm.getMaMay(), computerForm);
+            MayTinh existingComputer = mayTinhService.getMayTinhById(computerForm.getMaMay());
+            if (existingComputer == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy máy tính với mã: " + computerForm.getMaMay());
+                return "redirect:/admin/computers";
+            }
+            
+            // Cập nhật thông tin máy tính
+            existingComputer.setTenMay(computerForm.getTenMay());
+            existingComputer.setTrangThai(computerForm.getTrangThai());
+            existingComputer.setLoaiMay(computerForm.getLoaiMay());
+            
+            mayTinhService.updateMayTinh(existingComputer.getMaMay(), existingComputer);
             redirectAttributes.addFlashAttribute("successMessage", "Cập nhật máy tính thành công!");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Lỗi khi cập nhật máy tính: " + e.getMessage());
             model.addAttribute("danhSachLoaiMay", loaiMayService.getAllLoaiMay());
             model.addAttribute("isEditMode", true);
             model.addAttribute("computerForm", computerForm);
+            model.addAttribute("activePage", "computers");
             return "admin/computer-form";
         }
         return "redirect:/admin/computers";
@@ -232,6 +269,7 @@ public class AdminPageController {
         // Page<DichVuDTO> dichVuPage = dichVuService.getAllDichVuPageable(pageable); // Cần service hỗ trợ
         // model.addAttribute("dichVuPage", dichVuPage);
         model.addAttribute("danhSachDichVu", dichVuService.getAllDichVu());
+        model.addAttribute("activePage", "services");
         return "admin/manage-services";
     }
 
@@ -239,6 +277,7 @@ public class AdminPageController {
     public String showAddServiceForm(Model model) {
         model.addAttribute("serviceForm", new DichVuDTO()); // DTO này đã có và phù hợp
         model.addAttribute("isEditMode", false);
+        model.addAttribute("activePage", "services");
         return "admin/service-form";
     }
 
@@ -247,6 +286,7 @@ public class AdminPageController {
                               BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("isEditMode", false);
+            model.addAttribute("activePage", "services");
             return "admin/service-form";
         }
         try {
@@ -256,6 +296,7 @@ public class AdminPageController {
             model.addAttribute("errorMessage", "Lỗi khi thêm dịch vụ: " + e.getMessage());
             model.addAttribute("isEditMode", false);
             model.addAttribute("serviceForm", serviceForm);
+            model.addAttribute("activePage", "services");
             return "admin/service-form";
         }
         return "redirect:/admin/services";
@@ -266,6 +307,7 @@ public class AdminPageController {
         try {
             model.addAttribute("serviceForm", dichVuService.getDichVuByMaDV(maDV));
             model.addAttribute("isEditMode", true);
+            model.addAttribute("activePage", "services");
         } catch (ResourceNotFoundException e) {
             model.addAttribute("errorMessage", "Không tìm thấy dịch vụ: " + maDV);
             return "redirect:/admin/services";
@@ -278,6 +320,7 @@ public class AdminPageController {
                                 BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("isEditMode", true);
+            model.addAttribute("activePage", "services");
             return "admin/service-form";
         }
         try {
@@ -287,47 +330,99 @@ public class AdminPageController {
             model.addAttribute("errorMessage", "Lỗi khi cập nhật dịch vụ: " + e.getMessage());
             model.addAttribute("isEditMode", true);
             model.addAttribute("serviceForm", serviceForm);
+            model.addAttribute("activePage", "services");
             return "admin/service-form";
         }
         return "redirect:/admin/services";
     }
 
+    @DeleteMapping("/services/delete/{maDV}")
+    @ResponseBody
+    public ResponseEntity<String> deleteService(@PathVariable String maDV) {
+        try {
+            dichVuService.deleteDichVu(maDV);
+            return ResponseEntity.ok().body("Dịch vụ đã được xóa thành công.");
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (BadRequestException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi khi xóa dịch vụ: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/computers/delete/{maMay}")
+    @ResponseBody
+    public ResponseEntity<String> deleteComputer(@PathVariable String maMay) {
+        try {
+            mayTinhService.deleteMayTinh(maMay);
+            return ResponseEntity.ok("Máy tính đã được xóa thành công");
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (BadRequestException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi xóa máy tính: " + (e.getMessage() != null ? e.getMessage() : "Đã xảy ra lỗi không xác định."));
+        }
+    }
 
     // --- Quản Lý Tài Khoản Khách Hàng ---
     @GetMapping("/accounts")
     public String showManageAccountsPage(Model model, @PageableDefault(size = 10) Pageable pageable) {
-        Page<TaiKhoanInfoResponse> taiKhoanPage = taiKhoanService.getAllKhachHangTaiKhoanPageable(pageable); // Cần hàm này
-        model.addAttribute("taiKhoanPage", taiKhoanPage);
-        return "admin/manage-accounts";
+        try {
+            System.out.println("Đang tải danh sách tài khoản...");
+            Page<TaiKhoanInfoResponse> taiKhoanPage = taiKhoanService.getAllKhachHangTaiKhoanPageable(pageable);
+            
+            System.out.println("Số tài khoản: " + taiKhoanPage.getTotalElements());
+            System.out.println("Số trang: " + taiKhoanPage.getTotalPages());
+            
+            model.addAttribute("accounts", taiKhoanPage.getContent());
+            model.addAttribute("currentPage", taiKhoanPage.getNumber());
+            model.addAttribute("totalPages", taiKhoanPage.getTotalPages());
+            model.addAttribute("activePage", "accounts");
+            
+            return "admin/manage-accounts";
+        } catch (Exception e) {
+            System.err.println("Lỗi khi tải danh sách tài khoản: " + e.getMessage());
+            e.printStackTrace();
+            model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách tài khoản: " + e.getMessage());
+            return "admin/manage-accounts";
+        }
     }
 
     @GetMapping("/accounts/add")
     public String showAddAccountForm(Model model) {
-        model.addAttribute("accountForm", new CreateTaiKhoanRequest()); // DTO này đã có
-        model.addAttribute("danhSachLoaiKH", loaiKHService.getAllLoaiKH()); // Cần LoaiKHService
+        model.addAttribute("form", new CreateTaiKhoanRequest());
+        model.addAttribute("danhSachLoaiKH", loaiKHService.getAllLoaiKH());
         model.addAttribute("isEditMode", false);
+        model.addAttribute("activePage", "accounts");
         return "admin/account-form";
     }
 
     @PostMapping("/accounts/save")
-    public String saveAccount(@Valid @ModelAttribute("accountForm") CreateTaiKhoanRequest accountForm,
+    public String saveAccount(@Valid @ModelAttribute("form") CreateTaiKhoanRequest form,
                               BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("danhSachLoaiKH", loaiKHService.getAllLoaiKH());
             model.addAttribute("isEditMode", false);
+            model.addAttribute("form", form);
+            model.addAttribute("activePage", "accounts");
             return "admin/account-form";
         }
+
         try {
-            taiKhoanService.createTaiKhoanKhachHang(accountForm);
-            redirectAttributes.addFlashAttribute("successMessage", "Tạo tài khoản khách hàng thành công!");
+            taiKhoanService.createTaiKhoanKhachHang(form);
+            redirectAttributes.addFlashAttribute("successMessage", "Thêm tài khoản thành công!");
+            return "redirect:/admin/accounts";
         } catch (Exception e) {
-            model.addAttribute("errorMessage", "Lỗi khi tạo tài khoản: " + e.getMessage());
+            model.addAttribute("errorMessage", "Lỗi khi thêm tài khoản: " + e.getMessage());
             model.addAttribute("danhSachLoaiKH", loaiKHService.getAllLoaiKH());
             model.addAttribute("isEditMode", false);
-            model.addAttribute("accountForm", accountForm);
+            model.addAttribute("form", form);
+            model.addAttribute("activePage", "accounts");
             return "admin/account-form";
         }
-        return "redirect:/admin/accounts";
     }
 
     // Sửa tài khoản khách hàng có thể bao gồm sửa thông tin KhachHang và Loại KH
@@ -336,36 +431,62 @@ public class AdminPageController {
     public String showEditAccountForm(@PathVariable String maTK, Model model) {
         try {
             TaiKhoanInfoResponse tkInfo = taiKhoanService.getTaiKhoanInfo(maTK);
-            // Cần một DTO phù hợp để chỉnh sửa, CreateTaiKhoanRequest có thể không hoàn toàn phù hợp
-            // Hoặc load Entity KhachHang và TaiKhoan rồi map sang một FormDTO
-            CreateTaiKhoanRequest form = new CreateTaiKhoanRequest(); // Tạm dùng, cần DTO tốt hơn
-            TaiKhoan tk = taiKhoanService.findEntityByMaTK(maTK); // Cần service trả về Entity
-            if (tk != null && tk.getKhachHang() != null) {
-                BeanUtils.copyProperties(tk.getKhachHang(), form);
-                form.setHoTenKH(tk.getKhachHang().getHoTen()); // Đảm bảo copy đúng
-                form.setSoDienThoaiKH(tk.getKhachHang().getSoDienThoai());
-                form.setGioiTinhKH(tk.getKhachHang().getGioiTinh());
-                if (tk.getKhachHang().getLoaiKH() != null) {
-                    form.setMaLoaiKH(tk.getKhachHang().getLoaiKH().getMaLoaiKH());
+            CreateTaiKhoanRequest form = new CreateTaiKhoanRequest();
+            TaiKhoan tk = taiKhoanService.findEntityByMaTK(maTK);
+            if (tk != null) {
+                form.setMaTK(tk.getMaTK());
+                form.setTenTK(tk.getTenTK());
+                form.setMatKhau(tk.getMatKhau());
+                if (tk.getKhachHang() != null) {
+                    form.setMaKH(tk.getKhachHang().getMaKH());
+                    form.setHoTenKH(tk.getKhachHang().getHoTen());
+                    form.setSoDienThoaiKH(tk.getKhachHang().getSoDienThoai());
+                    form.setGioiTinhKH(tk.getKhachHang().getGioiTinh());
+                    if (tk.getKhachHang().getLoaiKH() != null) {
+                        form.setMaLoaiKH(tk.getKhachHang().getLoaiKH().getMaLoaiKH());
+                    }
                 }
             }
-            form.setTenTK(tkInfo.getTenTK());
-            // form.setSoTienConLai(tkInfo.getSoTienConLai()); // Không nên sửa trực tiếp ở đây
 
-            model.addAttribute("accountForm", form);
-            model.addAttribute("currentBalance", tkInfo.getSoTienConLai());
-            model.addAttribute("maTK", maTK); // Để dùng cho action nạp tiền hoặc update
+            model.addAttribute("form", form);
             model.addAttribute("danhSachLoaiKH", loaiKHService.getAllLoaiKH());
             model.addAttribute("isEditMode", true);
-        } catch (ResourceNotFoundException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy tài khoản: " + maTK);
+            model.addAttribute("activePage", "accounts");
+            return "admin/account-form";
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", "Không tìm thấy tài khoản: " + maTK);
             return "redirect:/admin/accounts";
         }
-        return "admin/account-form"; // Trang này cần hiển thị thông tin và có thể có nút "Nạp tiền"
     }
 
-    // POST /accounts/update - Cập nhật thông tin khách hàng (ví dụ: loại KH)
-    // Cần DTO và Service phù hợp cho việc update này.
+    @PostMapping("/accounts/update")
+    public String updateAccount(@Valid @ModelAttribute("form") CreateTaiKhoanRequest form,
+                                BindingResult bindingResult,
+                                RedirectAttributes redirectAttributes,
+                                Model model) {
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("danhSachLoaiKH", loaiKHService.getAllLoaiKH());
+            model.addAttribute("isEditMode", true);
+            model.addAttribute("activePage", "accounts");
+            model.addAttribute("form", form);
+            return "admin/account-form";
+        }
+        try {
+            taiKhoanService.updateTaiKhoanKhachHang(form.getMaTK(), form);
+            redirectAttributes.addFlashAttribute("successMessage", "Cập nhật tài khoản thành công!");
+        } catch (ResourceNotFoundException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/admin/accounts";
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", "Lỗi khi cập nhật tài khoản: " + e.getMessage());
+            model.addAttribute("danhSachLoaiKH", loaiKHService.getAllLoaiKH());
+            model.addAttribute("isEditMode", true);
+            model.addAttribute("form", form);
+            model.addAttribute("activePage", "accounts");
+            return "admin/account-form";
+        }
+        return "redirect:/admin/accounts";
+    }
 
     @GetMapping("/accounts/deposit/{maTK}")
     public String showDepositForm(@PathVariable String maTK, Model model, RedirectAttributes redirectAttributes) {
@@ -373,6 +494,7 @@ public class AdminPageController {
             TaiKhoanInfoResponse tkInfo = taiKhoanService.getTaiKhoanInfo(maTK);
             model.addAttribute("taiKhoanInfo", tkInfo);
             model.addAttribute("napTienRequest", new NapTienRequest(maTK, null));
+            model.addAttribute("activePage", "accounts");
         } catch (ResourceNotFoundException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy tài khoản: " + maTK);
             return "redirect:/admin/accounts";
@@ -388,6 +510,7 @@ public class AdminPageController {
                 TaiKhoanInfoResponse tkInfo = taiKhoanService.getTaiKhoanInfo(napTienRequest.getMaTK());
                 model.addAttribute("taiKhoanInfo", tkInfo);
             } catch (ResourceNotFoundException e) { /* Bỏ qua, lỗi binding chính hơn */ }
+            model.addAttribute("activePage", "accounts");
             return "admin/deposit-form";
         }
         try {
@@ -396,111 +519,324 @@ public class AdminPageController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Lỗi khi nạp tiền: " + e.getMessage());
             // Quay lại trang nạp tiền hoặc trang chi tiết tài khoản
-            return "redirect:/admin/accounts/deposit/" + napTienRequest.getMaTK();
+            return "redirect:/admin/accounts/deposit/" + napTienRequest.getMaTK(); // Hoặc /admin/accounts
         }
         return "redirect:/admin/accounts/edit/" + napTienRequest.getMaTK(); // Hoặc /admin/accounts
     }
 
     // --- Xem Phiên Sử Dụng ---
     @GetMapping("/sessions")
-    public String showSessionsPage(Model model, @PageableDefault(size = 10, sort = "thoiGianBatDau") Pageable pageable) {
-        model.addAttribute("phienSuDungPage", phienSuDungService.getAllSessionHistory(pageable));
+    public String viewSessions(Model model, 
+                             @RequestParam(defaultValue = "0") int page,
+                             @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<PhienSuDung> phienPage = phienSuDungService.getAllPhienSuDung(pageable);
+        
+        model.addAttribute("phienList", phienPage.getContent());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", phienPage.getTotalPages());
+        
+        // Lấy danh sách máy tính và tài khoản khả dụng
+        List<MayTinh> availableComputers = mayTinhService.getAvailableComputers();
+        List<TaiKhoan> availableAccounts = taiKhoanService.getAllTaiKhoan();
+        
+        model.addAttribute("availableComputers", availableComputers);
+        model.addAttribute("availableAccounts", availableAccounts);
+        
         return "admin/view-sessions";
+    }
+
+    @PostMapping("/sessions")
+    @ResponseBody
+    public ResponseEntity<?> createSession(@RequestBody Map<String, String> request) {
+        try {
+            String maMay = request.get("maMay");
+            String maTK = request.get("maTK");
+            
+            PhienSuDung phien = phienSuDungService.createPhienSuDung(maMay, maTK);
+            return ResponseEntity.ok(phien);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PutMapping("/sessions/{maPhien}/end")
+    @ResponseBody
+    public ResponseEntity<?> endSession(@PathVariable String maPhien) {
+        try {
+            phienSuDungService.endPhienSuDung(maPhien);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/sessions/add")
+    public String showAddSessionForm(Model model) {
+        model.addAttribute("isEditMode", false);
+        model.addAttribute("sessionForm", new PhienSuDung());
+        model.addAttribute("availableComputers", mayTinhService.getAvailableComputers());
+        return "admin/session-form";
+    }
+
+    @GetMapping("/sessions/edit/{maPhien}")
+    public String showEditSessionForm(@PathVariable Integer maPhien, Model model) {
+        PhienSuDung phien = phienSuDungService.findById(maPhien);
+        if (phien == null) {
+            throw new RuntimeException("Không tìm thấy phiên sử dụng");
+        }
+        
+        model.addAttribute("isEditMode", true);
+        model.addAttribute("sessionForm", phien);
+        model.addAttribute("availableComputers", mayTinhService.getAllMayTinh());
+        return "admin/session-form";
+    }
+
+    @PostMapping("/sessions/save")
+    public String saveSession(@ModelAttribute("sessionForm") PhienSuDung phien,
+                            @RequestParam("tenTK") String tenTK,
+                            RedirectAttributes redirectAttributes) {
+        try {
+            // Tìm tài khoản theo tên
+            TaiKhoan taiKhoan = taiKhoanService.findByTenTK(tenTK);
+            if (taiKhoan == null) {
+                throw new RuntimeException("Không tìm thấy tài khoản với tên: " + tenTK);
+            }
+
+            // Tạo phiên mới không cần chỉ định mã phiên
+            phienSuDungService.createPhienSuDung(phien.getMayTinh().getMaMay(), taiKhoan.getMaTK());
+            redirectAttributes.addFlashAttribute("successMessage", "Phiên sử dụng đã được tạo thành công.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/admin/sessions/add";
+        }
+        return "redirect:/admin/sessions";
+    }
+
+    @PostMapping("/sessions/update")
+    public String updateSession(@ModelAttribute("sessionForm") PhienSuDung phien,
+                              @RequestParam("tenTK") String tenTK,
+                              RedirectAttributes redirectAttributes) {
+        try {
+            PhienSuDung existingPhien = phienSuDungService.findById(phien.getMaPhien());
+            if (existingPhien == null) {
+                throw new RuntimeException("Không tìm thấy phiên sử dụng");
+            }
+
+            // Tìm tài khoản theo tên
+            TaiKhoan taiKhoan = taiKhoanService.findByTenTK(tenTK);
+            if (taiKhoan == null) {
+                throw new RuntimeException("Không tìm thấy tài khoản với tên: " + tenTK);
+            }
+
+            // Cập nhật thông tin
+            existingPhien.setMayTinh(phien.getMayTinh());
+            existingPhien.setTaiKhoan(taiKhoan);
+            existingPhien.setThoiGianBatDau(phien.getThoiGianBatDau());
+            existingPhien.setThoiGianKetThuc(phien.getThoiGianKetThuc());
+
+            phienSuDungService.save(existingPhien);
+            redirectAttributes.addFlashAttribute("successMessage", "Phiên sử dụng đã được cập nhật thành công.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+            return "redirect:/admin/sessions/edit/" + phien.getMaPhien();
+        }
+        return "redirect:/admin/sessions";
+    }
+
+    @DeleteMapping("/sessions/{maPhien}")
+    @ResponseBody
+    public ResponseEntity<String> deleteSession(@PathVariable Integer maPhien) {
+        try {
+            phienSuDungService.deletePhienSuDung(maPhien);
+            return ResponseEntity.ok("Phiên sử dụng đã được xóa thành công.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(e.getMessage());
+        }
     }
 
     // --- Quản Lý Nhân Viên ---
     @GetMapping("/employees")
     public String showManageEmployeesPage(Model model, @PageableDefault(size = 10) Pageable pageable) {
-        Page<NhanVien> employeePage = nhanVienService.getAllNhanVien(pageable); // Cần hàm này
-        model.addAttribute("employeePage", employeePage);
-        // model.addAttribute("danhSachNhanVien", nhanVienService.getAllNhanVienList()); // Nếu không phân trang
-        return "admin/manage-employees";
+        try {
+            Page<NhanVien> employeePage = nhanVienService.getAllNhanVien(pageable);
+            if (employeePage == null) {
+                model.addAttribute("error", "Không thể lấy danh sách nhân viên");
+                return "admin/manage-employees";
+            }
+            model.addAttribute("nhanVienList", employeePage.getContent());
+            model.addAttribute("currentPage", employeePage.getNumber());
+            model.addAttribute("totalPages", employeePage.getTotalPages());
+            model.addAttribute("activePage", "employees");
+            return "admin/manage-employees";
+        } catch (Exception e) {
+            e.printStackTrace(); // In stack trace để debug
+            model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách nhân viên: " + e.getMessage());
+            return "admin/manage-employees";
+        }
     }
 
     @GetMapping("/employees/add")
     public String showAddEmployeeForm(Model model) {
-        model.addAttribute("employeeForm", new NhanVien()); // Hoặc NhanVienFormDTO
-        model.addAttribute("danhSachChucVu", chucVuService.getAllChucVu()); // Cần ChucVuService
-        model.addAttribute("isEditMode", false);
-        return "admin/employee-form";
+        try {
+            model.addAttribute("employeeForm", new NhanVien());
+            model.addAttribute("danhSachChucVu", chucVuService.getAllChucVu());
+            model.addAttribute("isEditMode", false);
+            model.addAttribute("activePage", "employees");
+            return "admin/employee-form";
+        } catch (Exception e) {
+            model.addAttribute("error", "Có lỗi xảy ra: " + e.getMessage());
+            return "redirect:/admin/employees";
+        }
     }
 
     @PostMapping("/employees/save")
-    public String saveEmployee(@Valid @ModelAttribute("employeeForm") NhanVien employeeForm, // Thay bằng DTO
-                               BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
+    public String saveEmployee(@Valid @ModelAttribute("employeeForm") NhanVien employeeForm,
+                             BindingResult bindingResult,
+                             RedirectAttributes redirectAttributes,
+                             Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("danhSachChucVu", chucVuService.getAllChucVu());
             model.addAttribute("isEditMode", false);
+            model.addAttribute("activePage", "employees");
             return "admin/employee-form";
         }
+
         try {
-            // Cần logic gán ChucVu entity vào NhanVien nếu employeeForm.getChucVu() chỉ là maChucVu
-            // ChucVu cv = chucVuService.findById(employeeForm.getMaChucVu());
-            // employeeForm.setChucVu(cv);
-            nhanVienService.saveNhanVien(employeeForm); // Service nên nhận DTO và xử lý
+            // Tạo đối tượng ChucVu từ mã chức vụ
+            ChucVu chucVu = chucVuService.findById(employeeForm.getChucVu().getMaChucVu());
+            employeeForm.setChucVu(chucVu);
+            
+            nhanVienService.saveNhanVien(employeeForm);
             redirectAttributes.addFlashAttribute("successMessage", "Thêm nhân viên thành công!");
+            return "redirect:/admin/employees";
         } catch (Exception e) {
             model.addAttribute("errorMessage", "Lỗi khi thêm nhân viên: " + e.getMessage());
             model.addAttribute("danhSachChucVu", chucVuService.getAllChucVu());
             model.addAttribute("isEditMode", false);
             model.addAttribute("employeeForm", employeeForm);
+            model.addAttribute("activePage", "employees");
             return "admin/employee-form";
         }
-        return "redirect:/admin/employees";
     }
 
     @GetMapping("/employees/edit/{maNV}")
     public String showEditEmployeeForm(@PathVariable String maNV, Model model, RedirectAttributes redirectAttributes) {
         try {
             NhanVien nv = nhanVienService.getNhanVienById(maNV);
-            // Map sang DTO nếu cần
-            // NhanVienFormDTO formDTO = convertToNhanVienFormDTO(nv);
-            // if (nv.getChucVu() != null) formDTO.setMaChucVu(nv.getChucVu().getMaChucVu());
-            model.addAttribute("employeeForm", nv); // Hoặc formDTO
+            if (nv == null) {
+                redirectAttributes.addFlashAttribute("error", "Không tìm thấy nhân viên: " + maNV);
+                return "redirect:/admin/employees";
+            }
+            
+            // Đảm bảo chức vụ được load đầy đủ
+            if (nv.getChucVu() != null) {
+                ChucVu chucVu = chucVuService.findById(nv.getChucVu().getMaChucVu());
+                nv.setChucVu(chucVu);
+            }
+            
+            model.addAttribute("employeeForm", nv);
             model.addAttribute("danhSachChucVu", chucVuService.getAllChucVu());
             model.addAttribute("isEditMode", true);
-        } catch (ResourceNotFoundException e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy nhân viên: " + maNV);
+            model.addAttribute("activePage", "employees");
+            return "admin/employee-form";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "Lỗi khi tải thông tin nhân viên: " + e.getMessage());
             return "redirect:/admin/employees";
         }
-        return "admin/employee-form";
     }
 
     @PostMapping("/employees/update")
-    public String updateEmployee(@Valid @ModelAttribute("employeeForm") NhanVien employeeForm, // Thay bằng DTO
-                                 BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
+    public String updateEmployee(@Valid @ModelAttribute("employeeForm") NhanVien employeeForm,
+                               BindingResult bindingResult,
+                               RedirectAttributes redirectAttributes,
+                               Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("danhSachChucVu", chucVuService.getAllChucVu());
             model.addAttribute("isEditMode", true);
+            model.addAttribute("activePage", "employees");
             return "admin/employee-form";
         }
+
         try {
-            // Tương tự như save, cần xử lý ChucVu
-            nhanVienService.updateNhanVien(employeeForm.getMaNV(), employeeForm); // Service nên nhận DTO
+            // Lấy thông tin nhân viên hiện tại
+            NhanVien existingNhanVien = nhanVienService.getNhanVienById(employeeForm.getMaNV());
+            if (existingNhanVien == null) {
+                model.addAttribute("errorMessage", "Không tìm thấy nhân viên với mã: " + employeeForm.getMaNV());
+                model.addAttribute("danhSachChucVu", chucVuService.getAllChucVu());
+                model.addAttribute("isEditMode", true);
+                model.addAttribute("activePage", "employees");
+                return "admin/employee-form";
+            }
+            
+            // Cập nhật các thông tin cơ bản
+            existingNhanVien.setHoTen(employeeForm.getHoTen());
+            existingNhanVien.setSoDienThoai(employeeForm.getSoDienThoai());
+            existingNhanVien.setGioiTinh(employeeForm.getGioiTinh());
+            existingNhanVien.setNgaySinh(employeeForm.getNgaySinh());
+            
+            // Cập nhật chức vụ
+            if (employeeForm.getChucVu() != null) {
+                ChucVu chucVu = chucVuService.findById(employeeForm.getChucVu().getMaChucVu());
+                if (chucVu == null) {
+                    model.addAttribute("errorMessage", "Không tìm thấy chức vụ với mã: " + employeeForm.getChucVu().getMaChucVu());
+                    model.addAttribute("danhSachChucVu", chucVuService.getAllChucVu());
+                    model.addAttribute("isEditMode", true);
+                    model.addAttribute("activePage", "employees");
+                    return "admin/employee-form";
+                }
+                existingNhanVien.setChucVu(chucVu);
+            }
+            
+            nhanVienService.updateNhanVien(existingNhanVien.getMaNV(), existingNhanVien);
             redirectAttributes.addFlashAttribute("successMessage", "Cập nhật nhân viên thành công!");
+            return "redirect:/admin/employees";
         } catch (Exception e) {
             model.addAttribute("errorMessage", "Lỗi khi cập nhật nhân viên: " + e.getMessage());
             model.addAttribute("danhSachChucVu", chucVuService.getAllChucVu());
             model.addAttribute("isEditMode", true);
             model.addAttribute("employeeForm", employeeForm);
+            model.addAttribute("activePage", "employees");
             return "admin/employee-form";
         }
-        return "redirect:/admin/employees";
+    }
+
+    @DeleteMapping("/employees/delete/{maNV}")
+    @ResponseBody
+    public ResponseEntity<String> deleteEmployee(@PathVariable String maNV) {
+        try {
+            nhanVienService.deleteNhanVien(maNV);
+            return ResponseEntity.ok("Nhân viên đã được xóa thành công");
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (BadRequestException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi xóa nhân viên: " + (e.getMessage() != null ? e.getMessage() : "Đã xảy ra lỗi không xác định."));
+        }
     }
 
     // --- Quản Lý Ưu Đãi ---
     @GetMapping("/promotions")
     public String showManagePromotionsPage(Model model, @PageableDefault(size = 10) Pageable pageable) {
-        Page<UuDai> promotionPage = uuDaiService.getAllUuDai(pageable); // Cần hàm này
-        model.addAttribute("promotionPage", promotionPage);
-        // model.addAttribute("danhSachUuDai", uuDaiService.getAllUuDaiList());
-        return "admin/manage-promotions";
+        try {
+            Page<UuDai> promotionPage = uuDaiService.getAllUuDai(pageable);
+            model.addAttribute("promotionPage", promotionPage);
+            model.addAttribute("activePage", "promotions");
+            return "admin/manage-promotions";
+        } catch (Exception e) {
+            model.addAttribute("error", "Có lỗi xảy ra khi tải danh sách ưu đãi: " + e.getMessage());
+            return "admin/manage-promotions";
+        }
     }
 
     @GetMapping("/promotions/add")
     public String showAddPromotionForm(Model model) {
         model.addAttribute("promotionForm", new UuDai()); // Hoặc UuDaiFormDTO
         model.addAttribute("isEditMode", false);
+        model.addAttribute("activePage", "promotions");
         return "admin/promotion-form";
     }
 
@@ -509,6 +845,7 @@ public class AdminPageController {
                                 BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("isEditMode", false);
+            model.addAttribute("activePage", "promotions");
             return "admin/promotion-form";
         }
         try {
@@ -518,6 +855,7 @@ public class AdminPageController {
             model.addAttribute("errorMessage", "Lỗi khi thêm ưu đãi: " + e.getMessage());
             model.addAttribute("isEditMode", false);
             model.addAttribute("promotionForm", promotionForm);
+            model.addAttribute("activePage", "promotions");
             return "admin/promotion-form";
         }
         return "redirect:/admin/promotions";
@@ -529,6 +867,7 @@ public class AdminPageController {
             UuDai ud = uuDaiService.getUuDaiById(maUuDai);
             model.addAttribute("promotionForm", ud); // Hoặc DTO
             model.addAttribute("isEditMode", true);
+            model.addAttribute("activePage", "promotions");
         } catch (ResourceNotFoundException e) {
             redirectAttributes.addFlashAttribute("errorMessage", "Không tìm thấy ưu đãi: " + maUuDai);
             return "redirect:/admin/promotions";
@@ -541,6 +880,7 @@ public class AdminPageController {
                                   BindingResult bindingResult, RedirectAttributes redirectAttributes, Model model) {
         if (bindingResult.hasErrors()) {
             model.addAttribute("isEditMode", true);
+            model.addAttribute("activePage", "promotions");
             return "admin/promotion-form";
         }
         try {
@@ -550,9 +890,40 @@ public class AdminPageController {
             model.addAttribute("errorMessage", "Lỗi khi cập nhật ưu đãi: " + e.getMessage());
             model.addAttribute("isEditMode", true);
             model.addAttribute("promotionForm", promotionForm);
+            model.addAttribute("activePage", "promotions");
             return "admin/promotion-form";
         }
         return "redirect:/admin/promotions";
+    }
+
+    @DeleteMapping("/promotions/delete/{maUuDai}")
+    @ResponseBody
+    public ResponseEntity<String> deletePromotion(@PathVariable String maUuDai) {
+        try {
+            uuDaiService.deleteUuDai(maUuDai);
+            return ResponseEntity.ok().body("Ưu đãi đã được xóa thành công.");
+        } catch (ResourceNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Lỗi khi xóa ưu đãi: " + e.getMessage());
+        }
+    }
+
+    @DeleteMapping("/accounts/delete/{maTK}")
+    public ResponseEntity<String> deleteAccount(@PathVariable String maTK) {
+        try {
+            taiKhoanService.deleteById(maTK);
+            return ResponseEntity.ok("Tài khoản đã được xóa thành công");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Lỗi khi xóa tài khoản: " + e.getMessage());
+        }
+    }
+
+    @GetMapping("/logout")
+    public String logout(HttpSession session) {
+        session.invalidate();
+        return "redirect:/login";
     }
 
     // Bạn sẽ cần tạo các file HTML tương ứng cho các trang trên

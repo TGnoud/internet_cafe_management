@@ -10,6 +10,7 @@ import com.SpringTest.SpringTest.dto.response.PhienSuDungInfoResponse;
 import com.SpringTest.SpringTest.dto.response.TaiKhoanInfoResponse;
 import com.SpringTest.SpringTest.entity.HoaDonDV;
 import com.SpringTest.SpringTest.entity.MayTinh;
+import com.SpringTest.SpringTest.entity.PhienSuDung;
 import com.SpringTest.SpringTest.exception.BadRequestException;
 import com.SpringTest.SpringTest.service.*;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,6 +25,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 @RestController
 @RequestMapping("/api/employee")
 // @PreAuthorize("hasRole('EMPLOYEE') or hasRole('MANAGER')")
@@ -46,25 +48,23 @@ public class EmployeeController {
 
     // --- Quản lý Dịch Vụ ---
     @GetMapping("/sessions/active")
-    // @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER')")
-    public ResponseEntity<List<PhienSuDungInfoResponse>> getActiveSessions() {
-        return ResponseEntity.ok(phienSuDungService.getActiveSessions());
+    public ResponseEntity<List<PhienSuDung>> getActiveSessions() {
+        return ResponseEntity.ok(phienSuDungService.getPhienSuDungByTaiKhoan(null));
     }
 
-    @GetMapping("/sessions/history/machine/{maMay}")
-    // @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER')")
-    public ResponseEntity<Page<PhienSuDungInfoResponse>> getSessionHistoryByMachine(
+    @GetMapping("/sessions/machine/{maMay}")
+    public ResponseEntity<List<PhienSuDung>> getSessionHistoryByMachine(
             @PathVariable String maMay,
-            @PageableDefault(size = 10, sort = "thoiGianBatDau") Pageable pageable) { // Thêm sort default nếu muốn
-        return ResponseEntity.ok(phienSuDungService.getSessionHistoryByMachine(maMay, pageable));
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(phienSuDungService.getPhienSuDungByTaiKhoan(maMay));
     }
 
-    @GetMapping("/sessions/history/all")
-    // @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER')")
-    public ResponseEntity<Page<PhienSuDungInfoResponse>> getAllSessionHistory(
-            @PageableDefault(size = 10, sort = "thoiGianBatDau") Pageable pageable) {
-        return ResponseEntity.ok(phienSuDungService.getAllSessionHistory(pageable));
+    @GetMapping("/sessions")
+    public ResponseEntity<List<PhienSuDung>> getAllSessionHistory(
+            @PageableDefault(size = 10) Pageable pageable) {
+        return ResponseEntity.ok(phienSuDungService.getPhienSuDungByTaiKhoan(null));
     }
+
     @PostMapping("/services")
     // @PreAuthorize("hasAnyRole('EMPLOYEE', 'MANAGER')")
     public ResponseEntity<DichVuDTO> addDichVu(@RequestBody DichVuDTO dichVuDTO) {
@@ -158,14 +158,10 @@ public class EmployeeController {
     }
 
     @PostMapping("/sessions/{maPhien}/end")
-    @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")
-    public ResponseEntity<PhienSuDungInfoResponse> endSession(@PathVariable Integer maPhien) {
-        // Mặc định là có áp dụng ưu đãi khi tính tiền.
-        // Trong tương lai, có thể truyền vào từ request (ví dụ: một checkbox trên UI).
-        boolean apDungUuDai = true;
-
-        PhienSuDungInfoResponse finalizedSession = phienSuDungService.endSessionAndFinalize(maPhien, apDungUuDai);
-        return ResponseEntity.ok(finalizedSession);
+    public ResponseEntity<PhienSuDung> endSession(
+            @PathVariable Integer maPhien,
+            @RequestParam(defaultValue = "false") boolean apDungUuDai) {
+        return ResponseEntity.ok(phienSuDungService.ketThucPhienSuDung(maPhien));
     }
     @PostMapping("/service-orders")
     @PreAuthorize("hasAnyRole('ADMIN', 'EMPLOYEE')")

@@ -41,12 +41,6 @@ public class ManagerController {
         return ResponseEntity.ok(mayTinhService.updateMayTinh(maMay, mayTinhDetails));
     }
 
-    @DeleteMapping("/computers/{maMay}")
-    public ResponseEntity<String> deleteMayTinh(@PathVariable String maMay) {
-        mayTinhService.deleteMayTinh(maMay);
-        return ResponseEntity.ok("Đã xóa máy tính: " + maMay);
-    }
-
     @GetMapping("/promotions")
     public ResponseEntity<List<UuDai>> getAllPromotions() {
         return ResponseEntity.ok(uuDaiService.findAll());

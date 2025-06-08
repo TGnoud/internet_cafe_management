@@ -11,7 +11,7 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "NhanVien")
+@Table(name = "nhanvien")
 public class NhanVien {
 
     @Id
@@ -36,7 +36,4 @@ public class NhanVien {
 
     @OneToMany(mappedBy = "nhanVien", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private Set<HoaDonDV> hoaDonDVs;
-
-    @OneToMany(mappedBy = "nhanVien", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private Set<NhanVienCaLamViec> nhanVienCaLamViecs;
 }
