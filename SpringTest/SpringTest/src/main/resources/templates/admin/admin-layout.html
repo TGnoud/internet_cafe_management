@@ -61,6 +61,11 @@
               </a>
             </li>
             <li class="nav-item">
+              <a th:href="@{/admin/service-bills}" class="nav-link" th:classappend="${activePage == 'service-bills'} ? 'active'">
+                <i class="fas fa-file-invoice"></i> Quản Lý Hóa Đơn
+              </a>
+            </li>
+            <li class="nav-item">
               <a th:href="@{/admin/accounts}" class="nav-link" th:classappend="${activePage == 'accounts'} ? 'active'">
                 <i class="fas fa-users"></i> Quản Lý Tài Khoản
               </a>

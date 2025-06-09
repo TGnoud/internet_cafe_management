@@ -75,6 +75,12 @@
                         <div class="error" th:if="${#fields.hasErrors('maLoaiKH')}" th:errors="*{maLoaiKH}"></div>
                     </div>
 
+                    <div class="form-group" th:if="${isEditMode}">
+                        <label for="soTienConLai">Số tiền còn lại <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="soTienConLai" th:field="*{soTienConLai}" required min="0">
+                        <div class="error" th:if="${#fields.hasErrors('soTienConLai')}" th:errors="*{soTienConLai}"></div>
+                    </div>
+
                     <div class="form-group" th:unless="${isEditMode}">
                         <label for="soTienNapBanDau">Số tiền nạp ban đầu <span class="text-danger">*</span></label>
                         <input type="number" class="form-control" id="soTienNapBanDau" th:field="*{soTienNapBanDau}" required min="0">

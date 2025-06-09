@@ -437,6 +437,7 @@ public class AdminPageController {
                 form.setMaTK(tk.getMaTK());
                 form.setTenTK(tk.getTenTK());
                 form.setMatKhau(tk.getMatKhau());
+                form.setSoTienConLai(tk.getSoTienConLai());
                 if (tk.getKhachHang() != null) {
                     form.setMaKH(tk.getKhachHang().getMaKH());
                     form.setHoTenKH(tk.getKhachHang().getHoTen());

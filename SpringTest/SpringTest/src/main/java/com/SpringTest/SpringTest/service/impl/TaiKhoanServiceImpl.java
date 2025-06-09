@@ -219,6 +219,9 @@ public class TaiKhoanServiceImpl implements TaiKhoanService {
         // Cập nhật thông tin TaiKhoan
         existingTaiKhoan.setTenTK(request.getTenTK()); // Cập nhật tên đăng nhập
         existingTaiKhoan.setMatKhau(passwordEncoder.encode(request.getMatKhau())); // Cập nhật mật khẩu và mã hóa
+        if (request.getSoTienConLai() != null) {
+            existingTaiKhoan.setSoTienConLai(request.getSoTienConLai()); // Cập nhật số tiền còn lại
+        }
 
         khachHangRepository.save(existingKhachHang);
         taiKhoanRepository.save(existingTaiKhoan); // Lưu lại tài khoản đã được cập nhật

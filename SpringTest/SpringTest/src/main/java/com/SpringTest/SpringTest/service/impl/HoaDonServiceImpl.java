@@ -10,6 +10,8 @@ import com.SpringTest.SpringTest.repository.*;
 import com.SpringTest.SpringTest.service.HoaDonService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -145,6 +147,12 @@ public class HoaDonServiceImpl implements HoaDonService {
     }
 
     @Override
+    public Page<HoaDonDTO> getAllHoaDon(Pageable pageable) {
+        return hoaDonDVRepository.findAll(pageable)
+                .map(this::mapToHoaDonDTO);
+    }
+
+    @Override
     public HoaDonDV createHoaDonDV(CreateHoaDonRequest request) {
         return null;
     }
@@ -152,6 +160,83 @@ public class HoaDonServiceImpl implements HoaDonService {
     @Override
     public BigDecimal calculateBillTotal(String maHD, boolean applyDiscount) {
         return null;
+    }
+
+    @Override
+    @Transactional
+    public HoaDonDTO updateHoaDon(String maHD, CreateHoaDonRequest request) {
+        // 1. Kiểm tra hóa đơn tồn tại
+        HoaDonDV hoaDonDV = hoaDonDVRepository.findById(maHD)
+                .orElseThrow(() -> new ResourceNotFoundException("Hóa đơn " + maHD + " không tồn tại."));
+
+        // 2. Lấy các đối tượng liên quan từ DB
+        NhanVien nhanVien = nhanVienRepository.findById(request.getMaNV())
+                .orElseThrow(() -> new ResourceNotFoundException("Nhân viên " + request.getMaNV() + " không tồn tại."));
+
+        TaiKhoan taiKhoan = null;
+        if (request.getMaTK() != null && !request.getMaTK().isEmpty()) {
+            taiKhoan = taiKhoanRepository.findById(request.getMaTK())
+                    .orElseThrow(() -> new ResourceNotFoundException("Tài khoản " + request.getMaTK() + " không tồn tại."));
+        }
+
+        UuDai uuDai = null;
+        if (request.getMaUuDai() != null && !request.getMaUuDai().isEmpty()) {
+            uuDai = uuDaiRepository.findById(request.getMaUuDai())
+                    .orElseThrow(() -> new ResourceNotFoundException("Ưu đãi " + request.getMaUuDai() + " không tồn tại."));
+        }
+
+        // 3. Cập nhật thông tin hóa đơn
+        hoaDonDV.setNhanVien(nhanVien);
+        hoaDonDV.setTaiKhoan(taiKhoan);
+        hoaDonDV.setUuDai(uuDai);
+        hoaDonDV.setThoiDiemThanhToan(LocalDateTime.now());
+
+        // 4. Xóa các chi tiết hóa đơn cũ
+        List<ChiTietHoaDonDV> chiTietCu = chiTietHoaDonDVRepository.findByHoaDonDV(hoaDonDV);
+        chiTietHoaDonDVRepository.deleteAll(chiTietCu);
+
+        // 5. Tạo các chi tiết hóa đơn mới và tính tổng tiền
+        BigDecimal tongTienTruocGiam = BigDecimal.ZERO;
+        List<ChiTietHoaDonDV> chiTietList = new ArrayList<>();
+
+        if (request.getItems() == null || request.getItems().isEmpty()) {
+            throw new BadRequestException("Hóa đơn phải có ít nhất một dịch vụ.");
+        }
+
+        for (OrderServiceRequest.OrderItemRequest item : request.getItems()) {
+            DichVu dichVu = dichVuRepository.findById(item.getMaDV())
+                    .orElseThrow(() -> new ResourceNotFoundException("Dịch vụ " + item.getMaDV() + " không tồn tại."));
+
+            if (!"Còn hàng".equalsIgnoreCase(dichVu.getTrangThaiDichVu())) {
+                throw new BadRequestException("Dịch vụ " + dichVu.getTenDV() + " hiện không khả dụng.");
+            }
+
+            ChiTietHoaDonDVId ctId = new ChiTietHoaDonDVId(hoaDonDV.getMaHD(), dichVu.getMaDV());
+            ChiTietHoaDonDV chiTiet = new ChiTietHoaDonDV();
+            chiTiet.setId(ctId);
+            chiTiet.setHoaDonDV(hoaDonDV);
+            chiTiet.setDichVu(dichVu);
+            chiTiet.setSoLuong(item.getSoLuong());
+
+            chiTietList.add(chiTiet);
+
+            BigDecimal thanhTienItem = dichVu.getDonGia().multiply(BigDecimal.valueOf(item.getSoLuong()));
+            tongTienTruocGiam = tongTienTruocGiam.add(thanhTienItem);
+        }
+        chiTietHoaDonDVRepository.saveAll(chiTietList);
+
+        // 6. Tính toán giảm giá và tổng cuối cùng
+        BigDecimal soTienGiam = BigDecimal.ZERO;
+        if (uuDai != null && uuDai.getMucUuDai() != null) {
+            soTienGiam = tongTienTruocGiam.multiply(uuDai.getMucUuDai().divide(BigDecimal.valueOf(100), 0, RoundingMode.HALF_UP));
+        }
+        BigDecimal tongTienSauGiam = tongTienTruocGiam.subtract(soTienGiam);
+
+        // 7. Lưu hóa đơn đã cập nhật
+        HoaDonDV savedHoaDon = hoaDonDVRepository.save(hoaDonDV);
+
+        // 8. Trả về DTO
+        return mapToHoaDonDTO(savedHoaDon, chiTietList, tongTienTruocGiam, soTienGiam, tongTienSauGiam);
     }
 
     // Helper method để map sang DTO
@@ -168,7 +253,51 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
         BigDecimal tongTienSauGiam = tongTienTruocGiam.subtract(soTienGiam);
 
-        return mapToHoaDonDTO(hoaDonDV, chiTietList, tongTienTruocGiam, soTienGiam, tongTienSauGiam);
+        HoaDonDTO dto = new HoaDonDTO();
+        dto.setMaHD(hoaDonDV.getMaHD());
+        dto.setThoiDiemThanhToan(hoaDonDV.getThoiDiemThanhToan());
+
+        if (hoaDonDV.getTaiKhoan() != null) {
+            dto.setMaTK(hoaDonDV.getTaiKhoan().getMaTK());
+            dto.setTenTK(hoaDonDV.getTaiKhoan().getTenTK());
+        }
+        if (hoaDonDV.getNhanVien() != null) {
+            dto.setMaNV(hoaDonDV.getNhanVien().getMaNV());
+            dto.setTenNV(hoaDonDV.getNhanVien().getHoTen());
+        }
+        if (hoaDonDV.getUuDai() != null) {
+            dto.setMaUuDai(hoaDonDV.getUuDai().getMaUuDai());
+            dto.setNoiDungUuDai(hoaDonDV.getUuDai().getNoiDung());
+            dto.setMucUuDai(hoaDonDV.getUuDai().getMucUuDai());
+        }
+
+        // Map thông tin chi tiết hóa đơn
+        List<HoaDonDTO.ChiTietHoaDonDTO> chiTietDTOs = chiTietList.stream().map(ct -> {
+            HoaDonDTO.ChiTietHoaDonDTO ctDto = new HoaDonDTO.ChiTietHoaDonDTO();
+            ctDto.setMaDV(ct.getDichVu().getMaDV());
+            ctDto.setTenDV(ct.getDichVu().getTenDV());
+            ctDto.setSoLuong(ct.getSoLuong());
+            BigDecimal donGia = ct.getDichVu().getDonGia();
+            ctDto.setDonGiaLucBan(donGia);
+            ctDto.setThanhTien(donGia.multiply(BigDecimal.valueOf(ct.getSoLuong())));
+            return ctDto;
+        }).collect(Collectors.toList());
+        dto.setChiTiet(chiTietDTOs);
+
+        // Map thông tin hiển thị trong danh sách
+        if (!chiTietList.isEmpty()) {
+            ChiTietHoaDonDV firstItem = chiTietList.get(0);
+            dto.setTenDichVu(firstItem.getDichVu().getTenDV());
+            dto.setDonGia(firstItem.getDichVu().getDonGia());
+            dto.setSoLuong(firstItem.getSoLuong());
+            dto.setThanhTien(firstItem.getDichVu().getDonGia().multiply(BigDecimal.valueOf(firstItem.getSoLuong())));
+        }
+
+        dto.setTongTienTruocGiam(tongTienTruocGiam);
+        dto.setSoTienGiam(soTienGiam);
+        dto.setTongTienSauGiam(tongTienSauGiam);
+
+        return dto;
     }
 
     // Overloaded helper method
@@ -186,6 +315,8 @@ public class HoaDonServiceImpl implements HoaDonService {
         }
         if (hoaDonDV.getUuDai() != null) {
             dto.setMaUuDai(hoaDonDV.getUuDai().getMaUuDai());
+            dto.setNoiDungUuDai(hoaDonDV.getUuDai().getNoiDung());
+            dto.setMucUuDai(hoaDonDV.getUuDai().getMucUuDai());
         }
 
         List<HoaDonDTO.ChiTietHoaDonDTO> chiTietDTOs = chiTietList.stream().map(ct -> {

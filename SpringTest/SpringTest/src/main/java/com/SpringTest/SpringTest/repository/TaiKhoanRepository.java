@@ -39,4 +39,7 @@ public interface TaiKhoanRepository extends JpaRepository<TaiKhoan, String> {
 
     @Query("SELECT t FROM TaiKhoan t WHERE t.tenTK = :tenTK")
     Optional<TaiKhoan> findByTenTK(@Param("tenTK") String tenTK);
+
+    // Thêm phương thức mới không phân biệt chữ hoa/thường
+    Optional<TaiKhoan> findByTenTKIgnoreCase(String tenTK);
 }

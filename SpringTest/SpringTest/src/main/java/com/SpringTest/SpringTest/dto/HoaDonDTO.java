@@ -14,10 +14,17 @@ public class HoaDonDTO {
     private String maNV;
     private String tenNV; // Tên nhân viên
     private String maUuDai;
+    private String noiDungUuDai;
+    private BigDecimal mucUuDai;
     private BigDecimal tongTienTruocGiam;
     private BigDecimal soTienGiam;
     private BigDecimal tongTienSauGiam;
     private List<ChiTietHoaDonDTO> chiTiet;
+
+    private String tenDichVu;
+    private BigDecimal donGia;
+    private int soLuong;
+    private BigDecimal thanhTien;
 
     @Data
     public static class ChiTietHoaDonDTO {

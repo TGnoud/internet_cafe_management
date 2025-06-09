@@ -17,4 +17,5 @@ public class CreateTaiKhoanRequest {
     private String tenTK;
     private String matKhau;
     private BigDecimal soTienNapBanDau; // Optional
+    private BigDecimal soTienConLai; // Thêm trường số tiền còn lại
 }
