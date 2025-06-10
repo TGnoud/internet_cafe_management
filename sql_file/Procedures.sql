@@ -140,48 +140,100 @@ END$$
 DELIMITER ;
 
 ## lay thong tin
+DROP PROCEDURE IF EXISTS sp_NhanVien_LapHoaDon;
+DROP PROCEDURE IF EXISTS sp_NhanVien_LapHoaDon;
 DELIMITER $$
 
-CREATE PROCEDURE `sp_LayThongTinCaNhan`()
+CREATE PROCEDURE sp_NhanVien_LapHoaDon(
+    IN p_MaTK VARCHAR(10),      -- Mã tài khoản của khách hàng
+    IN p_MaNV VARCHAR(10),      -- Mã của nhân viên đang thực hiện
+    IN p_ChiTietGiaoDich JSON   -- Danh sách các dịch vụ dưới dạng JSON
+)
 BEGIN
-    -- Lấy tên người dùng đang đăng nhập
-    DECLARE currentUserTenTK VARCHAR(255);
-    SET currentUserTenTK = SUBSTRING_INDEX(CURRENT_USER(), '@', 1);
+    -- Khai báo biến
+    DECLARE v_MaHD_moi VARCHAR(15);
+    DECLARE v_SoTienCongThem_VaoTaiKhoan DECIMAL(12, 2) DEFAULT 0.00;
+    DECLARE v_TongTienMuaHang_Goc DECIMAL(12, 2) DEFAULT 0.00;
+    DECLARE v_TongTienDichVu_Goc DECIMAL(12, 2) DEFAULT 0.00; -- Biến mới để tính tổng
+    DECLARE v_TienGiam DECIMAL(12, 2) DEFAULT 0.00;
+    DECLARE v_TongTienThanhToan_Final DECIMAL(12, 2) DEFAULT 0.00;
+    DECLARE v_MaUuDai_Auto VARCHAR(10) DEFAULT NULL;
+    DECLARE v_PhanTramUuDai_Auto DECIMAL(5, 2) DEFAULT 0.00;
 
-    -- Truy vấn dữ liệu dựa trên tên người dùng đó
+    -- Khai báo handler để rollback khi có lỗi
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        RESIGNAL;
+    END;
+
+    START TRANSACTION;
+
+    -- 1. LẤY THÔNG TIN ƯU ĐÃI CỦA KHÁCH HÀNG
+    SELECT lkh.MaUuDai, IFNULL(u.MucUuDai, 0)
+    INTO v_MaUuDai_Auto, v_PhanTramUuDai_Auto
+    FROM TaiKhoan tk
+    JOIN KhachHang kh ON tk.MaKH = kh.MaKH
+    JOIN LoaiKH lkh ON kh.MaLoaiKH = lkh.MaLoaiKH
+    LEFT JOIN UuDai u ON lkh.MaUuDai = u.MaUuDai
+    WHERE tk.MaTK = p_MaTK;
+    
+    IF v_MaUuDai_Auto IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Lỗi: Không tìm thấy tài khoản khách hàng với mã cung cấp.';
+    END IF;
+
+    -- 2. TẠO HÓA ĐƠN CHÍNH
+    SET v_MaHD_moi = CONCAT('HD', DATE_FORMAT(NOW(), '%y%m%d%H%i%s'));
+    INSERT INTO HoaDonDV (MaHD, MaTK, MaNV, MaUuDai, ThoiDiemThanhToan)
+    VALUES (v_MaHD_moi, p_MaTK, p_MaNV, v_MaUuDai_Auto, NOW());
+
+    -- 3. THÊM CHI TIẾT HÓA ĐƠN
+    INSERT INTO CT_HoaDonDV (MaHD, MaDV, SoLuong)
+    SELECT v_MaHD_moi, j.ma_dv, j.so_luong
+    FROM JSON_TABLE(p_ChiTietGiaoDich, '$[*]' COLUMNS (ma_dv VARCHAR(10) PATH '$.ma_dv', so_luong INT PATH '$.so_luong')) AS j;
+
+    -- 4. TÍNH TOÁN CÁC GIÁ TRỊ THEO LOGIC MỚI
+    -- a. Tính tổng tiền "NAP_TIEN"
+    SELECT COALESCE(SUM(d.DonGia * j.so_luong), 0) INTO v_SoTienCongThem_VaoTaiKhoan
+    FROM JSON_TABLE(p_ChiTietGiaoDich, '$[*]' COLUMNS (ma_dv VARCHAR(10) PATH '$.ma_dv', so_luong INT PATH '$.so_luong')) AS j
+    JOIN DichVu d ON j.ma_dv = d.MaDV WHERE d.LoaiDichVu = 'NAP_TIEN';
+
+    -- b. Tính tổng tiền "MUA_HANG"
+    SELECT COALESCE(SUM(d.DonGia * j.so_luong), 0) INTO v_TongTienMuaHang_Goc
+    FROM JSON_TABLE(p_ChiTietGiaoDich, '$[*]' COLUMNS (ma_dv VARCHAR(10) PATH '$.ma_dv', so_luong INT PATH '$.so_luong')) AS j
+    JOIN DichVu d ON j.ma_dv = d.MaDV WHERE d.LoaiDichVu = 'MUA_HANG';
+    
+    -- c. TÍNH TỔNG GIÁ TRỊ GỐC CỦA TẤT CẢ DỊCH VỤ (TIỀN NẠP + TIỀN HÀNG)
+    SET v_TongTienDichVu_Goc = v_SoTienCongThem_VaoTaiKhoan + v_TongTienMuaHang_Goc;
+
+    -- d. ÁP DỤNG ƯU ĐÃI TRÊN TỔNG TIỀN TIÊU
+    IF v_PhanTramUuDai_Auto > 0 AND v_TongTienDichVu_Goc > 0 THEN
+        SET v_TienGiam = ROUND(v_TongTienDichVu_Goc * (v_PhanTramUuDai_Auto / 100.0), 2);
+    END IF;
+    
+    -- e. TÍNH TOÁN LẠI TỔNG THANH TOÁN CUỐI CÙNG
+    SET v_TongTienThanhToan_Final = v_TongTienDichVu_Goc - v_TienGiam;
+
+    -- 5. CẬP NHẬT TÀI KHOẢN KHÁCH HÀNG (CHỈ CỘNG TIỀN NẠP)
+    IF v_SoTienCongThem_VaoTaiKhoan > 0 THEN
+        UPDATE TaiKhoan SET SoTienConLai = SoTienConLai + v_SoTienCongThem_VaoTaiKhoan WHERE MaTK = p_MaTK;
+    END IF;
+
+    COMMIT;
+
+    -- TRẢ VỀ KẾT QUẢ CHO NHÂN VIÊN
     SELECT 
-        tk.MaTK, 
-        tk.TenTK, 
-        tk.SoTienConLai, 
-        kh.HoTen, 
-        kh.SoDienThoai
-    FROM 
-        TaiKhoan AS tk
-    JOIN 
-        KhachHang AS kh ON tk.MaKH = kh.MaKH
-    WHERE 
-        tk.TenTK = currentUserTenTK;
-END$$
+        'Giao dịch thành công!' AS Message, 
+        v_MaHD_moi AS MaHoaDonVuaTao,
+        v_TongTienDichVu_Goc AS TongTienGoc,
+        v_TienGiam AS TienGiamGia,
+        v_TongTienThanhToan_Final AS TongTienMatCanThu;
 
+END$$
 DELIMITER ;
 
-DELIMITER $$
+CALL sp_NhanVien_LapHoaDon(
+    'TK003', 'NV003',
+    '[{"ma_dv": "DV003", "so_luong": 1}, {"ma_dv": "DV004", "so_luong": 1}]'
+);
 
-CREATE PROCEDURE `sp_xem_thong_tin_ca_nhan`()
-SQL SECURITY DEFINER
-BEGIN
-    SELECT
-        tk.MaTK,
-        tk.TenTK,
-        tk.SoTienConLai,
-        kh.HoTen,
-        kh.SoDienThoai
-    FROM
-        TaiKhoan AS tk
-    JOIN
-        KhachHang AS kh ON tk.MaKH = kh.MaKH
-    WHERE
-        tk.TenTK = @ten_tk_hien_tai;
-END$$
-
-DELIMITER ;

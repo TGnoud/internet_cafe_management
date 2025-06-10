@@ -23,7 +23,7 @@ GRANT SELECT ON quan_ly_quan_net.View_KH_ThongTinCaNhan TO 'khach_hang_role'@'%'
 ## procedure for customer
 GRANT EXECUTE ON PROCEDURE quan_ly_quan_net.sp_KhachHang_GiaoDich TO 'khach_hang_role'@'%';
 GRANT EXECUTE ON PROCEDURE quan_ly_quan_net.sp_xem_thong_tin_ca_nhan TO 'khach_hang_role'@'%';
-
+GRANT EXECUTE ON PROCEDURE quan_ly_quan_net.sp_xem_lich_su_giao_dich TO 'khach_hang_role'@'%';
 
 -- -----------------------------------------------------
 -- CẤP QUYỀN CHO ROLE: nhan_vien_co_ban_role
@@ -39,8 +39,9 @@ GRANT SELECT ON quan_ly_quan_net.View_NV_lichsumuadichvu TO 'nhan_vien_co_ban_ro
 GRANT SELECT ON quan_ly_quan_net.View_NV_PhienDangHoatDongChiTiet TO 'nhan_vien_co_ban_role'@'%';
 GRANT SELECT ON quan_ly_quan_net.View_NV_LichLamViecNhanVien TO 'nhan_vien_co_ban_role'@'%';
 GRANT SELECT ON quan_ly_quan_net.View_KH_DanhSachMayVaTrangThai TO 'nhan_vien_co_ban_role'@'%'; -- Nhân viên có thể cần xem view này
-GRANT EXECUTE ON PROCEDURE quan_ly_quan_net.sp_NhanVien_NapTien TO 'nhan_vien_co_ban_role'@'%';
 
+GRANT EXECUTE ON PROCEDURE quan_ly_quan_net.sp_NhanVien_NapTien TO 'nhan_vien_co_ban_role'@'%';
+GRANT EXECUTE ON PROCEDURE quan_ly_quan_net.sp_NhanVien_LapHoaDon TO 'nhan_vien_co_ban_role'@'%';
 -- Quyền SELECT trên các bảng cần thiết để tra cứu thông tin
 GRANT SELECT ON quan_ly_quan_net.KhachHang TO 'nhan_vien_co_ban_role'@'%';
 GRANT SELECT ON quan_ly_quan_net.TaiKhoan TO 'nhan_vien_co_ban_role'@'%';
@@ -122,7 +123,7 @@ FLUSH PRIVILEGES;
 --    CREATE USER 'tên_user'@'host' IDENTIFIED BY 'mật_khẩu';
 --    Ví dụ:
     CREATE USER IF NOT EXISTS 'user_an01'@'%' IDENTIFIED BY 'pass001';
-
+	CREATE USER IF NOT EXISTS 'user_cuong03'@'%' IDENTIFIED BY 'pass003';
 -- Ví dụ cho nhân viên (lấy từ bảng TaiKhoanNhanVien)
 CREATE USER IF NOT EXISTS 'nhanvien_binh_002'@'%' IDENTIFIED BY 'pass_nv002';
 
@@ -137,7 +138,7 @@ CREATE USER IF NOT EXISTS 'admin_db_qln'@'localhost' IDENTIFIED BY 'MatKhauAdmin
 -- -----------------------------------------------------------------
 -- Gán role cho khách hàng
 GRANT 'khach_hang_role' TO 'user_an01'@'%';
-
+GRANT 'khach_hang_role' TO 'user_cuong03'@'%';
 -- Gán role cho nhân viên (vì NV002 có MaChucVu là CV002)
 GRANT 'nhan_vien_co_ban_role' TO 'nhanvien_binh_002'@'%';
 
@@ -151,6 +152,8 @@ GRANT 'quan_tri_vien_db_role' TO 'admin_db_qln'@'localhost';
 -- 3. Đặt role mặc định cho người dùng (Rất quan trọng)
 -- -----------------------------------------------------------------
 SET DEFAULT ROLE 'khach_hang_role' TO 'user_an01'@'%';
+SET DEFAULT ROLE 'khach_hang_role' TO 'user_cuong03'@'%';
+
 SET DEFAULT ROLE 'nhan_vien_co_ban_role' TO 'nhanvien_binh_002'@'%';
 SET DEFAULT ROLE 'quan_ly_cua_hang_role' TO 'quanly_an_001'@'%';
 SET DEFAULT ROLE 'quan_tri_vien_db_role' TO 'admin_db_qln'@'localhost';

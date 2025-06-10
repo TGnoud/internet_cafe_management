@@ -3,10 +3,10 @@ USE quan_ly_quan_net;
 
 -- -----------------------------------------------------
 -- VIEWS CHO KHÁCH HÀNG
--- -----------------------------------------------------
+-------------------------------------------------------
 
 -- 1. View_NV_TrangThaiMay
-CREATE VIEW View_NV_TrangThaiMay AS
+CREATE or replace VIEW View_NV_TrangThaiMay AS
 SELECT
     mt.MaMay,
     mt.TenMay,
@@ -25,35 +25,19 @@ LEFT JOIN
 LEFT JOIN
     TaiKhoan tk_active ON psd_active.MaTK = tk_active.MaTK;
 
--- 2. View_KH_ThongTinKhachHangCoBan
-
-CREATE OR REPLACE
-    SQL SECURITY DEFINER
-VIEW View_KH_ThongTinCaNhan AS
-SELECT
-    tk.MaTK,
-    tk.TenTK,
-    tk.SoTienConLai,
-    kh.HoTen,
-    kh.SoDienThoai
-FROM
-    TaiKhoan AS tk
-JOIN
-    KhachHang AS kh ON tk.MaKH = kh.MaKH
-WHERE
-    tk.TenTK = @ten_tk_hien_tai;
     -- -----------------------------------------------------
 -- VIEWS CHO NHÂN VIÊN
 -- -----------------------------------------------------
 
 -- 1. View_NV_ThongTinCaNhan
-CREATE VIEW View_NV_ThongTinCaNhan AS
+CREATE or replace VIEW View_NV_ThongTinCaNhan AS
 SELECT
     kh.MaKH,
     kh.HoTen,
     kh.SoDienThoai,
     kh.GioiTinh,
     tk.MaTK,
+    tk.matkhau,
     tk.TenTK,
     tk.SoTienConLai,
     lkh.TenLoai AS TenLoaiKhachHang,
@@ -69,7 +53,7 @@ LEFT JOIN
     UuDai ud ON lkh.MaUuDai = ud.MaUuDai;
     
 -- 2. View_NV_LichSuSuDungMay
-CREATE VIEW View_NV_LichSuSuDungMay AS
+CREATE or replace VIEW View_NV_LichSuSuDungMay AS
 SELECT
     psd.MaPhien,
     tk.MaTK,
@@ -98,7 +82,7 @@ WHERE
     psd.ThoiGianKetThuc IS NOT NULL; 
     
 -- 3. View_NV_LichSuMuaDichVu
-CREATE VIEW View_NV_LichSuMuaDichVu AS
+CREATE or replace VIEW View_NV_LichSuMuaDichVu AS
 SELECT
     hddv.MaHD,
     tk.MaTK,
@@ -125,7 +109,7 @@ LEFT JOIN
     UuDai ud_hd ON hddv.MaUuDai = ud_hd.MaUuDai;
 
 -- 4. View_KH_DanhSachMayVaTrangThai
-CREATE VIEW View_kh_DanhSachMayVaTrangThai AS
+CREATE or replace VIEW View_kh_DanhSachMayVaTrangThai AS
 SELECT
     mt.MaMay,
     mt.TenMay,
@@ -139,7 +123,7 @@ JOIN
 
 
 -- 3. View_KH_DanhSachDichVu
-CREATE VIEW View_kh_DanhSachDichVu AS
+CREATE or replace VIEW View_kh_DanhSachDichVu AS
 SELECT
     MaDV,
     TenDV,
@@ -149,7 +133,7 @@ FROM
     DichVu;
 
 -- 4. View_NV_PhienDangHoatDongChiTiet
-CREATE VIEW View_NV_PhienDangHoatDongChiTiet AS
+CREATE or replace VIEW View_NV_PhienDangHoatDongChiTiet AS
 SELECT
     psd.MaPhien,
     psd.MaMay,
@@ -178,7 +162,7 @@ WHERE
     psd.ThoiGianKetThuc IS NULL; -- Chỉ lấy các phiên đang hoạt động
 
 -- 5. View_NV_LichLamViecNhanVien
-CREATE VIEW View_NV_LichLamViecNhanVien AS
+CREATE or replace VIEW View_NV_LichLamViecNhanVien AS
 SELECT
     nv.MaNV,
     nv.HoTen AS TenNhanVien,
@@ -203,7 +187,7 @@ ORDER BY
 -- -----------------------------------------------------
 
 -- 1. View_QL_DoanhThuTienGioChiTiet
-CREATE VIEW View_QL_DoanhThuTienGioChiTiet AS
+CREATE or replace VIEW View_QL_DoanhThuTienGioChiTiet AS
 SELECT
     psd.MaPhien,
     psd.MaMay,
@@ -233,7 +217,7 @@ WHERE
     psd.ThoiGianKetThuc IS NOT NULL;
 
 -- 2. View_QL_ChiTietHoaDonDichVu
-CREATE VIEW View_QL_ChiTietHoaDonDichVu AS
+CREATE or replace VIEW View_QL_ChiTietHoaDonDichVu AS
 SELECT
     hddv.MaHD,
     hddv.ThoiDiemThanhToan,
@@ -265,7 +249,7 @@ LEFT JOIN
     UuDai ud_hd ON hddv.MaUuDai = ud_hd.MaUuDai;
 
 -- 3. View_QL_ThongTinNhanVienDayDu
-CREATE VIEW View_QL_ThongTinNhanVienDayDu AS
+CREATE or replace VIEW View_QL_ThongTinNhanVienDayDu AS
 SELECT
     nv.MaNV,
     nv.HoTen,
@@ -281,13 +265,14 @@ JOIN
     ChucVu cv ON nv.MaChucVu = cv.MaChucVu;
 
 -- 4. View_QL_ThongKeTaiKhoanKhachHang
-CREATE VIEW View_QL_ThongKeTaiKhoanKhachHang AS
+CREATE or replace VIEW View_QL_ThongKeTaiKhoanKhachHang AS
 SELECT
     kh.MaKH,
     kh.HoTen,
     kh.SoDienThoai,
     tk.MaTK,
     tk.TenTK,
+    tk.Matkhau,
     tk.SoTienConLai,
     lkh.TenLoai AS TenLoaiKhachHang,
     ud_lkh.NoiDung AS NoiDungUuDaiLoaiKH,
